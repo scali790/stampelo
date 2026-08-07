@@ -21,7 +21,7 @@ All plans include: Transparent background, High resolution (600 DPI PNG), Free S
 
 ## Webhook Endpoint
 
-Production: `https://www.stampelo.ch/api/stripe/webhook`
+Production: `https://www.stampelo.com/api/stripe/webhook`
 
 Configure in Stripe Dashboard → Developers → Webhooks.
 

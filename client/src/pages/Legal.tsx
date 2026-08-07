@@ -21,7 +21,7 @@ We use essential cookies for session management and authentication. We use analy
 
 ## 4. Data Retention
 
-Your stamp designs are stored on our servers for a minimum of 12 months to allow repeat downloads. You may request deletion of your data at any time by contacting support@stampelo.ch.
+Your stamp designs are stored on our servers for a minimum of 12 months to allow repeat downloads. You may request deletion of your data at any time by contacting support@stampelo.com.
 
 ## 5. Third-Party Services
 
@@ -29,7 +29,7 @@ We use the following third-party services: Stripe (payments), Resend (email deli
 
 ## 6. Contact
 
-For privacy-related inquiries, contact: support@stampelo.ch
+For privacy-related inquiries, contact: support@stampelo.com
     `,
   },
   terms: {
@@ -88,7 +88,7 @@ We will issue a full refund in the following circumstances:
 
 ## How to Request a Refund
 
-To request a refund, contact us at support@stampelo.ch within 7 days of your purchase. Please include your order ID and a description of the issue. We aim to respond within 24 hours.
+To request a refund, contact us at support@stampelo.com within 7 days of your purchase. Please include your order ID and a description of the issue. We aim to respond within 24 hours.
 
 ## Processing Time
 

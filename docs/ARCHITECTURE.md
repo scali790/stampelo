@@ -19,7 +19,7 @@ and Resend email delivery.
 | Email | Resend |
 | Hosting | Vercel (Autoscale) |
 | CI | GitHub Actions |
-| Domain | www.stampelo.ch |
+| Domain | www.stampelo.com |
 
 ## Key Design Decisions
 

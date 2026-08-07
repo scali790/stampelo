@@ -48,10 +48,10 @@ test.describe("Landing Page", () => {
     await expect(page).toHaveTitle(/Stampelo/);
   });
 
-  test("has canonical meta tag pointing to stampelo.ch", async ({ page }) => {
+  test("has canonical meta tag pointing to stampelo.com", async ({ page }) => {
     await page.goto(BASE_URL);
     const canonical = await page.getAttribute('link[rel="canonical"]', "href");
-    expect(canonical).toContain("stampelo.ch");
+    expect(canonical).toContain("stampelo.com");
   });
 });
 
@@ -136,12 +136,12 @@ test.describe("Legal Pages", () => {
     expect(bodyText).toContain("Refund");
   });
 
-  test("legal pages reference stampelo.ch domain", async ({ page }) => {
+  test("legal pages reference stampelo.com domain", async ({ page }) => {
     await page.goto(`${BASE_URL}/privacy`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1000);
     const bodyText = await page.evaluate(() => document.body.innerText);
-    expect(bodyText).toContain("stampelo.ch");
+    expect(bodyText).toContain("stampelo.com");
   });
 
   test("legal pages reference Swiss law", async ({ page }) => {

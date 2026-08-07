@@ -1,6 +1,6 @@
 # Stampelo — Professional Online Stamp Maker
 
-**Production URL:** https://www.stampelo.ch
+**Production URL:** https://www.stampelo.com
 **Repository:** https://github.com/scali790/stampelo
 **Stack:** React 19 + Vite + Express + tRPC + Drizzle ORM + PostgreSQL + Auth.js + Vercel Blob + Stripe + Resend
 

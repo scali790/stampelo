@@ -7,7 +7,7 @@ Copy `.env.example` to `.env.local` for local development.
 ### Application
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Yes | Public base URL (https://www.stampelo.ch) |
+| `NEXT_PUBLIC_APP_URL` | Yes | Public base URL (https://www.stampelo.com) |
 | `NODE_ENV` | Yes | `development` or `production` |
 
 ### Database

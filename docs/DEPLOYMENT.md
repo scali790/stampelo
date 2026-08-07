@@ -20,8 +20,8 @@ Every push to `main` triggers an automatic production deployment.
 ## Domain Configuration
 
 In Vercel Dashboard → Project → Settings → Domains:
-- Add `www.stampelo.ch` (primary)
-- Add `stampelo.ch` (redirects to www)
+- Add `www.stampelo.com` (primary)
+- Add `stampelo.com` (redirects to www)
 
 ### DNS Records (set at your registrar)
 

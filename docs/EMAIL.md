@@ -6,11 +6,11 @@ Stampelo uses [Resend](https://resend.com) for all transactional email.
 
 ## Sender Domain
 
-`stampelo.ch` must be verified in Resend.
+`stampelo.com` must be verified in Resend.
 
-After adding `stampelo.ch` in Resend Dashboard → Domains, Resend will show you the exact DNS records.
+After adding `stampelo.com` in Resend Dashboard → Domains, Resend will show you the exact DNS records.
 
-**Get the exact values from Resend Dashboard → Domains → stampelo.ch → DNS Records.**
+**Get the exact values from Resend Dashboard → Domains → stampelo.com → DNS Records.**
 
 ## Email Flows
 

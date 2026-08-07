@@ -12,8 +12,8 @@ and confirms its replacement in the production standalone architecture.
 | Manus OAuth | Auth.js v5 (email magic link + Google OAuth) | ✅ REPLACED |
 | Manus Database (MySQL/TiDB) | Neon PostgreSQL | ✅ REPLACED |
 | Manus Storage Proxy (/manus-storage/*) | Vercel Blob | ✅ REPLACED |
-| Manus Domain (stampelo-app-5lbna2jy.manus.space) | www.stampelo.ch | ✅ REPLACED |
-| Manus Email Proxy | Resend (direct, noreply@stampelo.ch) | ✅ REPLACED |
+| Manus Domain (stampelo-app-5lbna2jy.manus.space) | www.stampelo.com | ✅ REPLACED |
+| Manus Email Proxy | Resend (direct, noreply@stampelo.com) | ✅ REPLACED |
 | Manus Payment Infrastructure | Stripe direct (no Manus proxy) | ✅ N/A (was always direct) |
 | Manus Built-in Forge API (LLM, image gen) | Not used in production | ✅ REMOVED |
 | Manus Heartbeat SDK | Not used in production | ✅ REMOVED |
@@ -28,7 +28,7 @@ and confirms its replacement in the production standalone architecture.
 - No production request routes through *.manus.space or *.manus.im
 - No production secret is managed by Manus
 - The application builds and runs from a fresh GitHub clone with only documented env vars
-- Deleting the Manus project would have zero impact on www.stampelo.ch
+- Deleting the Manus project would have zero impact on www.stampelo.com
 
 ## Conclusion
 

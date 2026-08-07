@@ -3,5 +3,5 @@ Allow: /
 Disallow: /api/
 Disallow: /account
 
-Sitemap: https://www.stampelo.ch/sitemap.xml
+Sitemap: https://www.stampelo.com/sitemap.xml
 

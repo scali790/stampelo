@@ -3,7 +3,7 @@
 **Reference product:** MyStampReady Constructor (mystampready.com)  
 **Audit date:** August 7, 2025  
 **Stampelo version:** v3.0 (checkpoint 07a2e6ea + production hardening)  
-**Domain:** www.stampelo.ch  
+**Domain:** www.stampelo.com  
 **Currency:** CHF
 
 ---
@@ -154,7 +154,7 @@
 | i18n (EN) | ✅ | ✅ | |
 | i18n (DE) | ✅ | ✅ | Full German translation |
 | SEO meta tags | ✅ | ✅ | OG, Twitter Card, canonical |
-| Canonical URL | ✅ | ✅ | https://www.stampelo.ch |
+| Canonical URL | ✅ | ✅ | https://www.stampelo.com |
 | robots.txt | ✅ | ✅ | |
 | sitemap.xml | ✅ | ✅ | All routes |
 | Swiss geo meta | ❌ | ✅ | geo.region=CH, geo.country=Switzerland |
@@ -196,9 +196,9 @@
 | Priority | Item | Effort |
 |---|---|---|
 | High | Template thumbnail auto-generation on seed | 1 day |
-| High | Resend domain DNS config (noreply@stampelo.ch) | 30 min |
+| High | Resend domain DNS config (noreply@stampelo.com) | 30 min |
 | High | Stripe KYC + live keys | External (Stripe) |
-| High | Register stampelo.ch + bind in Settings → Domains | 30 min |
+| High | Register stampelo.com + bind in Settings → Domains | 30 min |
 | Medium | Expand template categories from 14 to 30+ | 2 days |
 | Medium | Use-case landing pages (medical, legal, wedding, notary) | 2 days |
 | Medium | Template thumbnail SVG generation pipeline | 1 day |

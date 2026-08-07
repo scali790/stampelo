@@ -49,7 +49,7 @@ export const orderRouter = router({
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-      const origin = ctx.req.headers.origin || "https://www.stampelo.ch";
+      const origin = ctx.req.headers.origin || "https://www.stampelo.com";
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",

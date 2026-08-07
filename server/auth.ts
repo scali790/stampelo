@@ -32,7 +32,7 @@ export const authConfig: ExpressAuthConfig = {
   }),
   providers: [
     Resend({
-      from: process.env.EMAIL_FROM || "noreply@stampelo.ch",
+      from: process.env.EMAIL_FROM || "noreply@stampelo.com",
       apiKey: process.env.RESEND_API_KEY,
     }),
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
