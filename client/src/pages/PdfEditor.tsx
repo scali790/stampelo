@@ -34,8 +34,7 @@ export default function PdfEditor() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const { getActiveStamp } = useEditorStore();
-  const stamp = getActiveStamp();
+  const stamp = useEditorStore((s) => s.stamps.find((st) => st.id === s.activeStampId));
 
   const uploadPdf = trpc.pdfEditor.uploadPdf.useMutation({
     onSuccess: (data) => { setPdfKey(data.key); toast.success("PDF uploaded to server"); },
@@ -210,6 +209,7 @@ export default function PdfEditor() {
                     {isStamping ? "Generating..." : <><Download className="w-4 h-4" /> Export Stamped PDF</>}
                   </Button>
                   {!pdfKey && <p className="text-xs text-muted-foreground">Upload a PDF first to enable export.</p>}
+                  {!stamp && <p className="text-xs text-amber-600">No stamp loaded. Go back to the editor and design a stamp first.</p>}
                 </div>
             </>
           )}
