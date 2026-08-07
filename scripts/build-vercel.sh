@@ -37,13 +37,13 @@ npx esbuild api/server.ts \
   --external:dotenv \
   --external:@aws-sdk/client-s3 \
   --external:@aws-sdk/s3-request-presigner \
-  --outfile=.vercel/output/functions/api/server.func/index.js
+  --outfile=.vercel/output/functions/api/server.func/index.mjs
 
 echo "[build] Writing .vc-config.json..."
 cat > .vercel/output/functions/api/server.func/.vc-config.json << 'VCEOF'
 {
   "runtime": "nodejs20.x",
-  "handler": "index.js",
+  "handler": "index.mjs",
   "launcherType": "Nodejs",
   "shouldAddHelpers": true,
   "maxDuration": 60
@@ -63,4 +63,4 @@ cat > .vercel/output/config.json << 'CFGEOF'
 }
 CFGEOF
 
-echo "[build] Done. Static: $(ls .vercel/output/static | wc -l) files. Function: $(wc -c < .vercel/output/functions/api/server.func/index.js) bytes"
+echo "[build] Done. Static: $(ls .vercel/output/static | wc -l) files. Function: $(wc -c < .vercel/output/functions/api/server.func/index.mjs) bytes"
