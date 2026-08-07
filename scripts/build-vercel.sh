@@ -89,3 +89,13 @@ echo '{"type":"module"}' > .vercel/output/functions/test-b.func/package.json
 cat > .vercel/output/functions/test-b.func/.vc-config.json << 'VCEOF'
 {"runtime":"nodejs20.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":true}
 VCEOF
+
+# ── ESM experiment: test-c (imports express) ─────────────────────────────────
+mkdir -p .vercel/output/functions/test-c.func
+cat > .vercel/output/functions/test-c.func/index.mjs << 'HANDLEREOF'
+import express from "express";
+const app = express();
+app.get("/api/test-c", (req, res) => { res.json({ status: "express-ok", variant: "C-express", ts: Date.now() }); });
+export default app;
+HANDLEREOF
+echo '{"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true}' > .vercel/output/functions/test-c.func/.vc-config.json
