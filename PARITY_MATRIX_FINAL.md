@@ -111,7 +111,7 @@
 |---|---|---|---|
 | Stripe checkout | ✅ | ✅ | CHF currency, 4 plans |
 | Webhook (idempotent) | ✅ | ✅ | Signature verified, no test bypass in production |
-| Signed download URLs | ✅ | ❌ | Vercel Blob objects are public; URLs are permanent and unguessable but not access-controlled. Remediation pending (see OPEN_ITEMS.md P1). |
+| Signed download URLs | ✅ | ❌ | **P0 LAUNCH BLOCKER — IDOR.** `orders.id` is a sequential integer. `getByOrderId` is unauthenticated. Attacker enumerates order IDs to retrieve any customer's download URLs. See `docs/SECURITY.md`. |
 | Email delivery | ✅ | ✅ | Resend wired; DNS config needed for live |
 | Repeat download | ✅ | ✅ | By orderId |
 | PROMO plan (CHF 2.50) | ✅ | ✅ | PNG only |
@@ -188,7 +188,7 @@
 | Webhook test bypass (evt_test_ prefix) | ✅ REMOVED |
 | Stripe signature verification | ✅ All webhooks verified |
 | SVG upload sanitisation | ✅ Client-side, max 50KB |
-| Download URLs | ❌ Vercel Blob public URLs — not access-controlled, not time-limited |
+| Download URLs | ❌ **P0 IDOR** — sequential order IDs + unauthenticated `getByOrderId` + public Blob storage = full enumeration attack possible. |
 | Admin route protection | ✅ adminProcedure role check |
 | JWT session signing | ✅ ENV.jwtSecret |
 

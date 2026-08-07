@@ -29,17 +29,45 @@ The Vercel Build Output API architecture ensures:
 
 ## Download URL Security Gap (KNOWN ISSUE)
 
-**Current state: export download URLs are publicly accessible without authentication.**
+## Download IDOR — P0 LAUNCH BLOCKER
 
-All generated export files (PNG, SVG, PDF, DOCX) are stored in Vercel Blob with `access: "public"`. The `storagePut()` helper in `server/storage.ts` passes `access: "public"` to the Vercel Blob API. There is no signed URL, no expiry, and no token required to download a file.
+**This is a confirmed Insecure Direct Object Reference (IDOR) / Broken Object Level Authorization vulnerability. It must be fixed before public launch.**
 
-Additionally, the `order.getByOrderId` tRPC procedure is a `publicProcedure` — it does not require authentication. Any party with the order ID can retrieve the order's download URLs.
+### Attack vector
 
-**Practical risk:** A user who obtains another user's Vercel Blob URL or order ID can download their purchased stamp files without authentication. The URLs are unguessable (random suffix) but permanent.
+`orders.id` is a PostgreSQL `serial` primary key — it is sequential and enumerable (1, 2, 3, …). The `order.getByOrderId` tRPC procedure is a `publicProcedure` with no authentication check. It returns the full order object including `downloadUrls`. The Vercel Blob files at those URLs are stored with `access: "public"`.
 
-**Remediation required:** See `docs/OPEN_ITEMS.md` — this is classified as P1. The remediation path is to either (a) switch Vercel Blob objects to private access and generate short-lived signed URLs per download request, or (b) proxy downloads through an authenticated server endpoint that verifies session ownership before streaming the file.
+An attacker does not need to guess any unguessable URL. They can enumerate:
+```
+GET /api/trpc/order.getByOrderId?input={"orderId":1}
+GET /api/trpc/order.getByOrderId?input={"orderId":2}
+...
+```
+and retrieve any customer's download URLs for any order ID. This is a complete authorization bypass.
 
-Do not describe download delivery as "signed" or "time-limited" in any customer-facing or internal documentation until this remediation is implemented.
+### Current state
+
+- `server/routers/order.ts` — `getByOrderId` is `publicProcedure`, no ownership check
+- `server/storage.ts` — `storagePut()` uses `access: "public"` for all exports
+- `orders.id` — sequential integer primary key
+- No guest download token exists
+
+### Required remediation (before launch)
+
+1. `getByOrderId` must require authentication. Authenticated users may only access orders where `order.userId === ctx.user.id`.
+2. Guest purchases (unauthenticated checkout) need a separate high-entropy `downloadToken` column (e.g., `nanoid(32)`), not the sequential order ID. The guest download page must accept only this token.
+3. Download delivery must require either authenticated ownership authorization or possession of a valid high-entropy guest token.
+4. Prefer private Blob storage with a server-side authorized download proxy so the underlying file URL cannot bypass authorization even if obtained.
+
+### Required tests (before launch)
+
+- User A cannot access User B's order via `getByOrderId`
+- Anonymous caller cannot enumerate order IDs
+- Invalid guest token is denied
+- Valid guest token only accesses its own order
+- Direct unauthorized Blob URL download is denied (requires private storage)
+
+**Do not describe download delivery as "signed", "secure", or "time-limited" in any documentation or marketing material until this remediation is implemented and tested.**
 
 ## Historical Issue: Bundle Exposure
 
