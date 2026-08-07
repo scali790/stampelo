@@ -1,26 +1,29 @@
 /**
- * Auth.js v5 configuration — replaces Manus OAuth entirely.
- * Supports: Email magic link (Resend), Google OAuth
- * Admin bootstrap: any user whose email matches ADMIN_EMAIL env var is auto-promoted to admin.
+ * Auth.js configuration using @auth/express (framework-agnostic).
+ * Works in standalone Express server and Vercel serverless functions.
+ * Supports: Email magic link (Resend), Google OAuth (optional).
+ * Admin bootstrap: first sign-in with ADMIN_EMAIL is auto-promoted to admin.
  */
-import NextAuth from "next-auth";
+import { ExpressAuth, getSession } from "@auth/express";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import Resend from "next-auth/providers/resend";
-import Google from "next-auth/providers/google";
+import Resend from "@auth/express/providers/resend";
+import Google from "@auth/express/providers/google";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { users, accounts, sessions, verificationTokens } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import type { ExpressAuthConfig } from "@auth/express";
 
 function getDb() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL!,
     ssl: { rejectUnauthorized: false },
+    max: 5,
   });
   return drizzle(pool);
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authConfig: ExpressAuthConfig = {
   adapter: DrizzleAdapter(getDb(), {
     usersTable: users,
     accountsTable: accounts,
@@ -29,42 +32,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   }),
   providers: [
     Resend({
-      from: "noreply@stampelo.ch",
+      from: process.env.EMAIL_FROM || "noreply@stampelo.ch",
       apiKey: process.env.RESEND_API_KEY,
     }),
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })]
+      : []),
   ],
   callbacks: {
     async session({ session, user }) {
-      if (session.user) {
+      if (session.user && user) {
         session.user.id = user.id;
-        // Auto-promote admin by email
-        const adminEmail = process.env.ADMIN_EMAIL;
-        if (adminEmail && user.email === adminEmail) {
-          const db = getDb();
-          const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-          if (dbUser && dbUser.role !== "admin") {
-            await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
-          }
-          (session.user as any).role = "admin";
-        } else {
-          const db = getDb();
-          const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-          (session.user as any).role = dbUser?.role ?? "user";
-        }
+        const db = getDb();
+        const dbUser = await db.select({ role: users.role }).from(users).where(eq(users.id, user.id)).limit(1);
+        (session.user as { id: string; role?: string }).role = dbUser[0]?.role ?? "user";
       }
       return session;
     },
+    async signIn({ user }) {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (adminEmail && user.email === adminEmail && user.id) {
+        const db = getDb();
+        await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
+      }
+      return true;
+    },
   },
   pages: {
-    signIn: "/auth/signin",
-    verifyRequest: "/auth/verify",
-    error: "/auth/error",
+    signIn: "/account",
+    error: "/account",
   },
-  session: {
-    strategy: "database",
-  },
-});
+  trustHost: true,
+};
+
+// Express middleware — mount at app.use("/api/auth/*", authMiddleware)
+export const authMiddleware = ExpressAuth(authConfig);
+
+// Helper to get session in other Express routes
+export { getSession };

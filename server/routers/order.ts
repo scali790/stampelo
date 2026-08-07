@@ -4,7 +4,6 @@ import { getDb } from "../db";
 import { designs, orders } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { ENV } from "../_core/env";
 
 // Prices in CHF cents (CHF is the Swiss Franc, ISO 4217: CHF)
 // Stripe supports CHF natively for Swiss merchants.

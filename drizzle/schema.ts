@@ -47,6 +47,7 @@ export const designs = pgTable("designs", {
   shareToken: varchar("shareToken", { length: 32 }).unique().notNull(),
   name: text("name").default("Untitled Stamp"),
   stateJson: jsonb("stateJson"),
+  thumbnailDataUrl: text("thumbnailDataUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

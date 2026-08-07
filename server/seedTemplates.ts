@@ -6,7 +6,8 @@
  * Every stamp has: id, shape, widthMm, color, effects, elements[]
  */
 
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { templates } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 
@@ -183,7 +184,8 @@ const TEMPLATES = [
 ];
 
 async function seed() {
-  const db = drizzle(process.env.DATABASE_URL!);
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL!, ssl: { rejectUnauthorized: false } });
+const db = drizzle(pool);
   console.log(`Seeding ${TEMPLATES.length} templates...`);
 
   for (const t of TEMPLATES) {
@@ -194,7 +196,7 @@ async function seed() {
       stateJson: t.stateJson,
       thumbnailSvg: svgPreview,
       isActive: true,
-    }).onDuplicateKeyUpdate({ set: { name: t.name } });
+    }).onConflictDoUpdate({ target: templates.slug, set: { name: t.name } });
     console.log(`  ✓ ${t.name}`);
   }
   console.log("Done!");

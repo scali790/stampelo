@@ -66,6 +66,7 @@ async function fulfillOrder(session: Stripe.Checkout.Session) {
 
   try {
     // Load design state
+    if (!existingOrder.designId) throw new Error("Order has no associated design");
     const [design] = await db.select().from(designs).where(eq(designs.id, existingOrder.designId)).limit(1);
     if (!design || !design.stateJson) {
       throw new Error("Design not found");
@@ -76,43 +77,43 @@ async function fulfillOrder(session: Stripe.Checkout.Session) {
     if (!stamp) throw new Error("Stamp not found in design state");
 
     const plan = existingOrder.plan;
-    const downloadLinks: Array<{ format: string; key: string }> = [];
+    const downloadUrls: Array<{ format: string; key: string }> = [];
 
     // Always generate PNG
     const pngBuffer = await generatePng(stamp, 600);
     const pngResult = await storagePut(`orders/${existingOrder.id}/stamp.png`, pngBuffer, "image/png");
-    downloadLinks.push({ format: "png", key: pngResult.key });
+    downloadUrls.push({ format: "png", key: pngResult.key });
 
     // SVG for econom+
     if (["econom", "premium", "vip"].includes(plan)) {
       const svgString = generateSvg(stamp);
       const svgResult = await storagePut(`orders/${existingOrder.id}/stamp.svg`, Buffer.from(svgString), "image/svg+xml");
-      downloadLinks.push({ format: "svg", key: svgResult.key });
+      downloadUrls.push({ format: "svg", key: svgResult.key });
     }
 
     // PDF for premium+
     if (["premium", "vip"].includes(plan)) {
       const pdfBuffer = await generatePdf(stamp);
       const pdfResult = await storagePut(`orders/${existingOrder.id}/stamp.pdf`, pdfBuffer, "application/pdf");
-      downloadLinks.push({ format: "pdf", key: pdfResult.key });
+      downloadUrls.push({ format: "pdf", key: pdfResult.key });
     }
 
     // DOCX for vip
     if (plan === "vip") {
       const docxBuffer = await generateDocx(stamp);
       const docxResult = await storagePut(`orders/${existingOrder.id}/stamp.docx`, docxBuffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-      downloadLinks.push({ format: "docx", key: docxResult.key });
+      downloadUrls.push({ format: "docx", key: docxResult.key });
     }
 
     // Update order with download links and mark fulfilled
     await db.update(orders).set({
       status: "fulfilled",
-      downloadLinks,
-      stripePaymentIntentId: session.payment_intent as string,
+      downloadUrls,
+      stripePaymentIntentId: (session.payment_intent as string | null) ?? null,
     }).where(eq(orders.id, existingOrder.id));
 
     // Send email with download link
-    await sendFulfillmentEmail(existingOrder.email, existingOrder.id, plan);
+    if (existingOrder.email) await sendFulfillmentEmail(existingOrder.email, existingOrder.id, plan);
 
     console.log(`[Webhook] Order ${existingOrder.id} fulfilled successfully`);
   } catch (err) {
