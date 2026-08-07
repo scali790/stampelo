@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Edit, Download, Mail, Chrome } from "lucide-react";
+import { ArrowLeft, Edit, Download, Mail } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEditorStore } from "@/editor/store";
 import { useState } from "react";
@@ -32,18 +32,20 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Account() {
+  // ── ALL hooks must be declared unconditionally at the top ──────────────────
   const { user, isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const { loadState } = useEditorStore();
 
-  const { data: designs = [] } = trpc.design.myDesigns.useQuery(undefined, { enabled: isAuthenticated });
-  const { data: orders = [] } = trpc.order.myOrders.useQuery(undefined, { enabled: isAuthenticated });
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
-
+  // Sign-in form state — declared before any conditional return
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+
+  // Data queries — enabled flag prevents actual fetches when not authenticated
+  const { data: designs = [] } = trpc.design.myDesigns.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: orders = [] } = trpc.order.myOrders.useQuery(undefined, { enabled: isAuthenticated });
+  // ── End of hooks ───────────────────────────────────────────────────────────
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,15 @@ export default function Account() {
       setSigningIn(false);
     }
   };
+
+  // ── Conditional renders (after all hooks) ─────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
