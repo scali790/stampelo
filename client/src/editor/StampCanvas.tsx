@@ -1,26 +1,26 @@
 import React, { useCallback } from "react";
 import { useEditorStore } from "./store";
 import { renderStampSvg } from "./svgUtils";
+import { useIsMobile } from "@/hooks/useMobile";
 
 export function StampCanvas() {
   const { getActiveStamp, selectedElementId, setSelectedElement } = useEditorStore();
   const stamp = getActiveStamp();
+  const isMobile = useIsMobile();
 
   if (!stamp) return null;
 
-  // Render at 500x500 display size, viewBox stays 250x250
-  const displaySize = 500;
+  // Render at 500x500 on desktop, 300x300 on mobile
+  const displaySize = isMobile ? 300 : 500;
   const svgContent = renderStampSvg(stamp);
   const displaySvg = svgContent
     .replace('width="250" height="250"', `width="${displaySize}" height="${displaySize}"`);
 
   return (
     <div
-      className="flex-1 flex items-center justify-center min-h-0 p-8 overflow-auto"
-      style={{
-        background: "radial-gradient(circle at center, #e8edf5 0%, #d4dce8 100%)",
-      }}
-      onClick={() => setSelectedElement(null)}
+     className="flex-1 flex items-center justify-center min-h-0 overflow-auto"
+     style={{ padding: isMobile ? "16px" : "32px", background: "radial-gradient(circle at center, #e8edf5 0%, #d4dce8 100%)" }}
+     onClick={() => setSelectedElement(null)}
     >
       <div className="relative" onClick={(e) => e.stopPropagation()}>
         {/* Checkered background to show transparency */}

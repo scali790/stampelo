@@ -78,8 +78,8 @@
 - [x] Legal pages (Privacy Policy, Terms of Service, Refund Policy)
 
 ## Phase 9: QA & Polish
-- [x] Vitest unit tests (7 tests passing)
-- [ ] Mobile responsive editor (post-launch)
+- [x] Vitest unit tests (50 tests passing across 4 test files)
+- [x] Mobile responsive editor (full-width canvas, overlay panels on mobile)
 - [ ] Cross-browser testing (post-launch)
 - [ ] Performance optimisation (post-launch)
 - [ ] Accessibility audit (post-launch)

@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Account from "./pages/Account";
+import Admin from "./pages/Admin";
 import Legal from "./pages/Legal";
 import PdfEditor from "./pages/PdfEditor";
 import DownloadPage from "./pages/Download";
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/privacy"} component={Legal} />
       <Route path={"/terms"} component={Legal} />
       <Route path={"/refund"} component={Legal} />
+      <Route path={"/admin"} component={Admin} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

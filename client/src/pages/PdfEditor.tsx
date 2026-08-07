@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { useEditorStore } from "@/editor/store";
 import { renderStampSvg } from "@/editor/svgUtils";
+import { trpc } from "@/lib/trpc";
 
 interface StampPlacement {
   x: number; // percentage of page width
@@ -27,11 +28,28 @@ export default function PdfEditor() {
   const [placement, setPlacement] = useState<StampPlacement>({
     x: 50, y: 50, scale: 1, rotation: 0, pageIndex: 0,
   });
+  const [pdfKey, setPdfKey] = useState<string | null>(null);
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  const [isStamping, setIsStamping] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const { getActiveStamp } = useEditorStore();
   const stamp = getActiveStamp();
+
+  const uploadPdf = trpc.pdfEditor.uploadPdf.useMutation({
+    onSuccess: (data) => { setPdfKey(data.key); toast.success("PDF uploaded to server"); },
+    onError: () => toast.error("Failed to upload PDF"),
+  });
+
+  const stampPdfMutation = trpc.pdfEditor.stampPdf.useMutation({
+    onSuccess: (data) => {
+      setIsStamping(false);
+      window.open(data.downloadUrl, "_blank");
+      toast.success("Stamped PDF ready — downloading...");
+    },
+    onError: () => { setIsStamping(false); toast.error("Failed to generate stamped PDF"); },
+  });
 
   const loadPdf = useCallback(async (file: File) => {
     try {
@@ -72,6 +90,13 @@ export default function PdfEditor() {
     if (file.size > 20 * 1024 * 1024) { toast.error("File must be smaller than 20 MB"); return; }
     setPdfFile(file);
     loadPdf(file);
+    // Upload to server for server-side merge
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = (ev.target?.result as string).split(",")[1] ?? "";
+      uploadPdf.mutate({ pdfBase64: base64, filename: file.name });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -143,9 +168,49 @@ export default function PdfEditor() {
                 </CardContent>
               </Card>
 
-              <Button className="w-full gap-2" onClick={() => toast.info("Export feature — purchase a plan from the editor to unlock PDF stamping export.")}>
-                <Download className="w-4 h-4" /> Export Stamped PDF
-              </Button>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Apply to pages:</label>
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        className={`text-xs px-2 py-1 rounded border ${selectedPages.length === 0 ? "bg-primary text-white" : "bg-background"}`}
+                        onClick={() => setSelectedPages([])}
+                      >All</button>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                          key={i}
+                          className={`text-xs px-2 py-1 rounded border ${selectedPages.includes(i) ? "bg-primary text-white" : "bg-background"}`}
+                          onClick={() => setSelectedPages((prev) =>
+                            prev.includes(i) ? prev.filter((p) => p !== i) : [...prev, i]
+                          )}
+                        >{i + 1}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full gap-2"
+                    disabled={!pdfKey || !stamp || isStamping || stampPdfMutation.isPending}
+                    onClick={() => {
+                      if (!pdfKey || !stamp) return;
+                      setIsStamping(true);
+                      stampPdfMutation.mutate({
+                        pdfKey,
+                        stampSvg: renderStampSvg(stamp),
+                        placement: {
+                          xPct: placement.x,
+                          yPct: placement.y,
+                          scale: placement.scale,
+                          rotation: placement.rotation,
+                          stampWidthMm: stamp.widthMm,
+                        },
+                        pageIndices: selectedPages,
+                      });
+                    }}
+                  >
+                    {isStamping ? "Generating..." : <><Download className="w-4 h-4" /> Export Stamped PDF</>}
+                  </Button>
+                  {!pdfKey && <p className="text-xs text-muted-foreground">Upload a PDF first to enable export.</p>}
+                </div>
             </>
           )}
         </div>

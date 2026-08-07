@@ -1,6 +1,8 @@
 import { designRouter } from "./routers/design";
 import { orderRouter } from "./routers/order";
 import { templateRouter, iconRouter } from "./routers/template";
+import { pdfEditorRouter } from "./routers/pdfEditor";
+import { adminRouter } from "./routers/admin";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -24,6 +26,8 @@ export const appRouter = router({
   order: orderRouter,
   template: templateRouter,
   icon: iconRouter,
+  pdfEditor: pdfEditorRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

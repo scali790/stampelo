@@ -2,30 +2,30 @@
 // Each icon is a minimal SVG path/group that fits in a 24x24 viewBox
 
 export const ICON_CATEGORIES = [
-  "Business",
+  "Business Finance",
   "Medical",
-  "Legal",
-  "Nature",
-  "Technology",
+  "Law Economics",
+  "Agriculture Construction",
+  "Engineering Technology",
   "Transport",
-  "Food",
-  "Education",
-  "Finance",
+  "Food Drinks",
+  "Science Education",
   "Communication",
-  "Security",
-  "Sports",
-  "Travel",
-  "Construction",
-  "Animals",
-  "Symbols",
-  "Arrows",
-  "Stars & Shapes",
-  "Agriculture",
+  "Sport",
+  "Tourism Travel",
+  "Fauna",
+  "Flora",
+  "Religion",
+  "Architecture",
+  "Recreation Entertainment",
+  "People",
+  "Symbols Decoration",
+  "Stars Shapes",
 ] as const;
 
 export type IconCategory = (typeof ICON_CATEGORIES)[number];
 
-// Sample built-in icons (SVG path data, 24x24 viewBox)
+// Built-in icons (SVG path data, 24x24 viewBox) — 100+ icons across all categories
 export const BUILT_IN_ICONS: Array<{
   id: string;
   name: string;
@@ -33,34 +33,123 @@ export const BUILT_IN_ICONS: Array<{
   path: string;
   tags: string;
 }> = [
-  // Business
-  { id: "briefcase", name: "Briefcase", category: "Business", path: "M20 7H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9-2h2v2h-2V5zm9 14H4V9h16v10z", tags: "work office business" },
-  { id: "building", name: "Building", category: "Business", path: "M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zm-6 4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2z", tags: "building company office" },
-  { id: "handshake", name: "Handshake", category: "Business", path: "M11 6H9L7 4H3L1 6v4l2 2h2l1 1v1l-2 2v2l2 2h2l4-4 4 4h2l2-2v-2l-2-2v-1l1-1h2l2-2V6l-2-2h-4l-2 2zm-1 2l2-2h4l1 1v3l-1 1h-2l-2 2v2l-3 3-3-3v-2l-2-2H2V7l1-1h4l2 2z", tags: "deal agreement partnership" },
-  // Medical
+  // ── Business Finance ──────────────────────────────────────────────────────────
+  { id: "briefcase", name: "Briefcase", category: "Business Finance", path: "M20 7H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9-2h2v2h-2V5zm9 14H4V9h16v10z", tags: "work office business" },
+  { id: "building", name: "Building", category: "Business Finance", path: "M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zm-6 4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2z", tags: "building company office" },
+  { id: "handshake", name: "Handshake", category: "Business Finance", path: "M11 6H9L7 4H3L1 6v4l2 2h2l1 1v1l-2 2v2l2 2h2l4-4 4 4h2l2-2v-2l-2-2v-1l1-1h2l2-2V6l-2-2h-4l-2 2zm-1 2l2-2h4l1 1v3l-1 1h-2l-2 2v2l-3 3-3-3v-2l-2-2H2V7l1-1h4l2 2z", tags: "deal agreement partnership" },
+  { id: "chart-bar", name: "Bar Chart", category: "Business Finance", path: "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z", tags: "chart analytics business finance" },
+  { id: "dollar", name: "Dollar Sign", category: "Business Finance", path: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z", tags: "money currency finance" },
+  { id: "bank", name: "Bank", category: "Business Finance", path: "M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zM11.5 1L2 6v2h19V6l-9.5-5z", tags: "bank finance money institution" },
+  { id: "coins", name: "Coins", category: "Business Finance", path: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z", tags: "coins money finance" },
+  // ── Medical ───────────────────────────────────────────────────────────────────
   { id: "cross", name: "Medical Cross", category: "Medical", path: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z", tags: "health hospital medicine" },
   { id: "heart", name: "Heart", category: "Medical", path: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", tags: "love health care" },
   { id: "stethoscope", name: "Stethoscope", category: "Medical", path: "M19 8C19 10.76 17.26 13.15 14.78 14.19L14 14.5V17c0 1.65-1.35 3-3 3s-3-1.35-3-3v-2.5l-.78-.31C4.74 13.15 3 10.76 3 8V4h2v4c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4V4h2v4zM9 4H7V2h2v2zm8 0h-2V2h2v2z", tags: "doctor health medical" },
-  // Legal
-  { id: "scale", name: "Scale of Justice", category: "Legal", path: "M17 7h-4v1.9l2 2V11h-2v2h2v1.1l-2 2V18h4c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm0 9h-2v-1l2-2v3zm0-5h-2V9h2v2zM7 7H3c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h4v-1.9l-2-2V13h2v-2H5V9.1l2-2V7zm0 9H5v-3l2 2v1z", tags: "justice law legal" },
-  { id: "gavel", name: "Gavel", category: "Legal", path: "M1 21L10 12 13 15 4 24 1 21zM5.5 5.5l2.5 2.5-2.5 2.5L3 8l2.5-2.5zM21 3L11 13l-2-2L19 1l2 2zM17.5 7.5L15 10l-2-2 2.5-2.5 2 2z", tags: "court judge law" },
-  // Nature
-  { id: "tree", name: "Tree", category: "Nature", path: "M17 12h-5V7h-2v5H5l7 7 7-7zM5 20v2h14v-2H5z", tags: "nature environment green" },
-  { id: "leaf", name: "Leaf", category: "Nature", path: "M17 8C8 10 5.9 16.17 3.82 21H5.71C6.72 18.5 8.24 15.33 11 13c-1.56 2.5-2.04 5.5-1.96 8h2c.06-3.5 1.5-6.5 4-8.5V21h2V8z", tags: "leaf plant nature eco" },
-  // Technology
-  { id: "gear", name: "Gear", category: "Technology", path: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z", tags: "settings cog technology" },
-  { id: "computer", name: "Computer", category: "Technology", path: "M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z", tags: "computer tech digital" },
-  // Transport
+  { id: "pill", name: "Pill", category: "Medical", path: "M4.22 11.29l6.36-6.36c1.56-1.56 4.09-1.56 5.66 0l2.83 2.83c1.56 1.56 1.56 4.09 0 5.66l-6.36 6.36c-1.56 1.56-4.09 1.56-5.66 0l-2.83-2.83c-1.56-1.56-1.56-4.09 0-5.66zm8.49-.71L9.29 13.9l1.41 1.41 3.54-3.54-1.53-1.19z", tags: "pill medicine drug pharmacy" },
+  { id: "hospital", name: "Hospital", category: "Medical", path: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z", tags: "hospital clinic medical building" },
+  { id: "dna", name: "DNA", category: "Medical", path: "M7 2v2c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V2h-2v2H9V2H7zm0 18v2h2v-2h6v2h2v-2c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2zm5-14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z", tags: "dna genetics science medical" },
+  { id: "ambulance", name: "Ambulance", category: "Medical", path: "M19 3H5c-1.1 0-2 .9-2 2v11H1v3h1c0 1.66 1.34 3 3 3s3-1.34 3-3h8c0 1.66 1.34 3 3 3s3-1.34 3-3h1v-5l-3-4V5c0-1.1-.9-2-2-2zM5 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm7-10h-1.5V10H9v-1.5H7.5V7H9V5.5h1.5V7H12v1.5zm2 10c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3-7h-2.5V9H17l2 2.5z", tags: "ambulance emergency medical" },
+  // ── Law Economics ─────────────────────────────────────────────────────────────
+  { id: "scale", name: "Scale of Justice", category: "Law Economics", path: "M17 7h-4v1.9l2 2V11h-2v2h2v1.1l-2 2V18h4c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm0 9h-2v-1l2-2v3zm0-5h-2V9h2v2zM7 7H3c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h4v-1.9l-2-2V13h2v-2H5V9.1l2-2V7zm0 9H5v-3l2 2v1z", tags: "justice law legal" },
+  { id: "gavel", name: "Gavel", category: "Law Economics", path: "M1 21L10 12 13 15 4 24 1 21zM5.5 5.5l2.5 2.5-2.5 2.5L3 8l2.5-2.5zM21 3L11 13l-2-2L19 1l2 2zM17.5 7.5L15 10l-2-2 2.5-2.5 2 2z", tags: "court judge law" },
+  { id: "document", name: "Document", category: "Law Economics", path: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z", tags: "document contract legal" },
+  { id: "stamp-approved", name: "Approved Stamp", category: "Law Economics", path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z", tags: "approved certified legal" },
+  { id: "notary", name: "Notary Seal", category: "Law Economics", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8-1.41-1.42z", tags: "notary seal certified official" },
+  // ── Agriculture Construction ───────────────────────────────────────────────────
+  { id: "wheat", name: "Wheat", category: "Agriculture Construction", path: "M14.5 2.5c0 1.5-1.5 7-1.5 7s-1.5-5.5-1.5-7a1.5 1.5 0 0 1 3 0zM7 10.5c1.5 0 7 1.5 7 1.5s-5.5 1.5-7 1.5a1.5 1.5 0 0 1 0-3zM17 10.5a1.5 1.5 0 0 1 0 3c-1.5 0-7-1.5-7-1.5s5.5-1.5 7-1.5zM12 13c0 4.97-4.03 9-9 9v-2c3.87 0 7-3.13 7-7h2z", tags: "wheat grain agriculture" },
+  { id: "tractor", name: "Tractor", category: "Agriculture Construction", path: "M19 8h-2V3H7v5H5c-1.1 0-2 .9-2 2v5H1v2h2c0 1.66 1.34 3 3 3s3-1.34 3-3h8c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z", tags: "tractor farm agriculture" },
+  { id: "hard-hat", name: "Hard Hat", category: "Agriculture Construction", path: "M12 2C8.43 2 5.23 3.54 3 6.05V20h18V6.05C18.77 3.54 15.57 2 12 2zm6 16H6v-4h12v4zm0-6H6v-1.45C6 8.06 8.69 5 12 5s6 3.06 6 5.55V12z", tags: "construction safety helmet worker" },
+  { id: "crane", name: "Crane", category: "Agriculture Construction", path: "M21 5V3H3v2l8 9v5H7v2h10v-2h-4v-5l8-9zM5.43 5h13.14l-1.78 2H7.21L5.43 5z", tags: "crane construction building" },
+  { id: "house", name: "House", category: "Agriculture Construction", path: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", tags: "house home building real estate" },
+  // ── Engineering Technology ────────────────────────────────────────────────────
+  { id: "gear", name: "Gear", category: "Engineering Technology", path: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z", tags: "settings cog technology engineering" },
+  { id: "computer", name: "Computer", category: "Engineering Technology", path: "M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z", tags: "computer tech digital" },
+  { id: "circuit", name: "Circuit Board", category: "Engineering Technology", path: "M9 3H7v2H5v2h2v2H5v2h2v2H3v2h4v2H5v2h2v2h2v-2h2v2h2v-2h2v2h2v-2h2v-2h-4v-2h4v-2h-2v-2h2V9h-2V7h2V5h-2V3h-2v2h-2V3H9zm0 4h6v6H9V7z", tags: "circuit electronics engineering" },
+  { id: "wrench", name: "Wrench", category: "Engineering Technology", path: "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z", tags: "wrench tool repair engineering" },
+  { id: "atom", name: "Atom", category: "Engineering Technology", path: "M12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6.36-2.36C17.47 7.73 15.5 7 13.5 7c-.96 0-1.86.18-2.68.5.08-.5.18-1 .18-1.5 0-2.76-2.24-5-5-5S1 3.24 1 6s2.24 5 5 5c.5 0 1-.1 1.5-.18C7.18 11.64 7 12.54 7 13.5c0 2 .73 3.97 1.64 4.86C9.53 19.27 10.5 20 12 20s2.47-.73 3.36-1.64C16.27 17.47 17 15.5 17 13.5c0-.96-.18-1.86-.5-2.68.5.08 1 .18 1.5.18 2.76 0 5-2.24 5-5s-2.24-5-5-5c-.5 0-1 .1-1.5.18.32-.82.5-1.72.5-2.68z", tags: "atom science physics" },
+  // ── Transport ─────────────────────────────────────────────────────────────────
   { id: "truck", name: "Truck", category: "Transport", path: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z", tags: "truck delivery transport" },
   { id: "plane", name: "Airplane", category: "Transport", path: "M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z", tags: "airplane flight travel" },
-  // Stars & Shapes
-  { id: "star", name: "Star", category: "Stars & Shapes", path: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z", tags: "star rating favorite" },
-  { id: "diamond", name: "Diamond", category: "Stars & Shapes", path: "M19 3H5L2 9l10 12L22 9l-3-6zm-8.5 6l1.5-3 1.5 3h-3zm5 0l-1.5-3h3l-1.5 3zM5.5 8l1.5-3h2L7.5 8H5.5zm1.5 1l3 4-4.5-4H7zm5 4l3-4h1.5L12 13zm3-4h1.5l-1.5 3-1.5-3H15z", tags: "diamond gem shape" },
-  { id: "shield", name: "Shield", category: "Security", path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z", tags: "shield security protection" },
-  { id: "crown", name: "Crown", category: "Symbols", path: "M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z", tags: "crown royal premium" },
-  { id: "ribbon", name: "Ribbon", category: "Symbols", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z", tags: "award ribbon badge" },
-  { id: "eagle", name: "Eagle", category: "Animals", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z", tags: "eagle bird animal" },
-  { id: "globe", name: "Globe", category: "Travel", path: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.9 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z", tags: "world globe international" },
-  { id: "anchor", name: "Anchor", category: "Symbols", path: "M17.26 22L12 19.23 6.74 22l1-5.83-4.24-4.13 5.86-.85L12 6l2.64 5.19 5.86.85-4.24 4.13z", tags: "anchor sea marine" },
-  { id: "wheat", name: "Wheat", category: "Agriculture", path: "M14.5 2.5c0 1.5-1.5 7-1.5 7s-1.5-5.5-1.5-7a1.5 1.5 0 0 1 3 0zM7 10.5c1.5 0 7 1.5 7 1.5s-5.5 1.5-7 1.5a1.5 1.5 0 0 1 0-3zM17 10.5a1.5 1.5 0 0 1 0 3c-1.5 0-7-1.5-7-1.5s5.5-1.5 7-1.5zM12 13c0 4.97-4.03 9-9 9v-2c3.87 0 7-3.13 7-7h2z", tags: "wheat grain agriculture food" },
+  { id: "ship", name: "Ship", category: "Transport", path: "M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.64 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.14.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z", tags: "ship boat sea transport" },
+  { id: "car", name: "Car", category: "Transport", path: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z", tags: "car automobile transport" },
+  { id: "train", name: "Train", category: "Transport", path: "M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm5.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM18 10h-5V6h5v4z", tags: "train railway transport" },
+  { id: "bicycle", name: "Bicycle", category: "Transport", path: "M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z", tags: "bicycle bike cycling sport" },
+  // ── Food Drinks ───────────────────────────────────────────────────────────────
+  { id: "fork-knife", name: "Fork & Knife", category: "Food Drinks", path: "M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z", tags: "food restaurant dining" },
+  { id: "coffee", name: "Coffee", category: "Food Drinks", path: "M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z", tags: "coffee drink cafe beverage" },
+  { id: "wine", name: "Wine Glass", category: "Food Drinks", path: "M20 3H4l4 9.5V19H6v2h12v-2h-2v-6.5L20 3zm-8 9.5c-1.84 0-3.5-.96-3.5-2.5h7c0 1.54-1.66 2.5-3.5 2.5z", tags: "wine drink alcohol restaurant" },
+  { id: "chef-hat", name: "Chef Hat", category: "Food Drinks", path: "M18.06 22.99h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05h-5V1h-1.97v4.05h-4.97V1h-2v4.05H3l1.64 16.48c.1.82.79 1.46 1.63 1.46h1.66l.22-2H17.84l.22 2zM13 17.5h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7.5h2V9.5z", tags: "chef cook restaurant food" },
+  { id: "pizza", name: "Pizza", category: "Food Drinks", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z", tags: "pizza food restaurant" },
+  // ── Science Education ─────────────────────────────────────────────────────────
+  { id: "book", name: "Book", category: "Science Education", path: "M18 2h-8L4 8v14h16V2h-2zm-6 14H8v-2h4v2zm4-4H8v-2h8v2zm0-4H8V6h8v2z", tags: "book education school learning" },
+  { id: "graduation", name: "Graduation Cap", category: "Science Education", path: "M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z", tags: "graduation school university education" },
+  { id: "microscope", name: "Microscope", category: "Science Education", path: "M9.8 10.7l1.4 1.4-4.6 4.6-1.4-1.4 4.6-4.6zm8.2 8.3H6v2h12v-2zm-7-16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm1 9.17V15h-2v-2.83C8.17 11.6 7 10.4 7 9c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.4-1.17 2.6-2 3.17z", tags: "microscope science research lab" },
+  { id: "flask", name: "Flask", category: "Science Education", path: "M9 3v.5L5.5 9C4.5 10.5 4 12 4 13.5 4 17.09 7.13 20 11 20h2c3.87 0 7-2.91 7-6.5 0-1.5-.5-3-1.5-4.5L15 3.5V3H9zm2 2h2v1h-2V5zm-2.5 4.5L10 7h4l1.5 2.5H8.5z", tags: "flask chemistry science lab" },
+  { id: "pencil", name: "Pencil", category: "Science Education", path: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z", tags: "pencil write education school" },
+  // ── Communication ─────────────────────────────────────────────────────────────
+  { id: "phone", name: "Phone", category: "Communication", path: "M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z", tags: "phone call communication" },
+  { id: "envelope", name: "Envelope", category: "Communication", path: "M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z", tags: "email mail message communication" },
+  { id: "chat", name: "Chat Bubble", category: "Communication", path: "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z", tags: "chat message communication" },
+  { id: "wifi", name: "WiFi", category: "Communication", path: "M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z", tags: "wifi wireless internet communication" },
+  { id: "satellite", name: "Satellite", category: "Communication", path: "M10.9 2.1l-4.6 4.6-1.4-1.4-1.4 1.4 4.6 4.6-1.4 1.4-1.4-1.4-2.8 2.8 1.4 1.4-1.4 1.4 4.6 4.6 1.4-1.4 1.4 1.4 2.8-2.8-1.4-1.4 1.4-1.4-4.6-4.6 1.4-1.4 1.4 1.4 4.6-4.6-1.4-1.4 1.4-1.4-4.6-4.6-1.4 1.4-1.4-1.4zm7.1 7.1c1.2 1.2 1.2 3.2 0 4.4l1.4 1.4c2-2 2-5.2 0-7.2l-1.4 1.4zm2.8-2.8c2.8 2.8 2.8 7.2 0 10l1.4 1.4c3.5-3.5 3.5-9.3 0-12.8l-1.4 1.4z", tags: "satellite communication technology" },
+  // ── Sport ─────────────────────────────────────────────────────────────────────
+  { id: "soccer", name: "Soccer Ball", category: "Sport", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.93V16h2v1.93c-1.03.14-1.97.14-3 0h1zm4.99-.85l-.99-1.72 1.73-1 .99 1.72c-.57.37-1.14.71-1.73 1zm-7.98 0c-.59-.29-1.16-.63-1.73-1l.99-1.72 1.73 1-.99 1.72zm10.5-4.27l-1.72-.99 1-1.73 1.72.99c-.14 1.03-.43 2.01-.99 2.73h-.01zm-14.02 0c-.57-.72-.86-1.7-.99-2.73l1.72-.99 1 1.73-1.73.99zm14.51-5.74c.43.9.7 1.88.7 2.93h-2c0-.74-.12-1.45-.34-2.12l1.64-.81zm-15 0l1.64.81C5.12 8.55 5 9.26 5 10H3c0-1.05.27-2.03.7-2.93zM12 4c1.05 0 2.03.27 2.93.7l-.81 1.64C13.45 6.12 12.74 6 12 6s-1.45.12-2.12.34L9.07 4.7C9.97 4.27 10.95 4 12 4z", tags: "soccer football sport ball" },
+  { id: "trophy", name: "Trophy", category: "Sport", path: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 10.82C5.84 10.4 5 9.3 5 8V7h2v3.82zM19 8c0 1.3-.84 2.4-2 2.82V7h2v1z", tags: "trophy award sport winner" },
+  { id: "basketball", name: "Basketball", category: "Sport", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM7.07 18.28c.43-.9 3.05-1.78 4.93-2.07v2.89c-1.8-.2-3.39-.88-4.93-1.82zm5.93 1.82v-2.89c1.88.29 4.5 1.17 4.93 2.07-1.54.94-3.13 1.62-4.93 1.82zM4.1 7.5c.96-.63 3.58-.25 5.9 1.04-1.42 1.29-2.7 3.17-3.27 5.17C5.23 12.04 4 9.72 4 7.5c0 0 .05 0 .1 0zm1.9 8.5c.57-2 1.85-3.88 3.27-5.17 1.32 1.29 2.1 3.17 2.1 5.17H9.5c-1.35 0-2.57-.4-3.5-1zm11.9.5c-.93.6-2.15 1-3.5 1h-.37c0-2 .78-3.88 2.1-5.17 1.42 1.29 2.7 3.17 3.27 5.17-.5.01-.99-.01-1.5 0zm.1-2.5c-.57-2-1.85-3.88-3.27-5.17 2.32-1.29 4.94-1.67 5.9-1.04.05 0 .1 0 .1 0 0 2.22-1.23 4.54-2.73 6.21z", tags: "basketball sport ball" },
+  { id: "dumbbell", name: "Dumbbell", category: "Sport", path: "M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z", tags: "dumbbell gym fitness sport" },
+  // ── Tourism Travel ────────────────────────────────────────────────────────────
+  { id: "globe", name: "Globe", category: "Tourism Travel", path: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.9 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z", tags: "world globe international travel" },
+  { id: "map-pin", name: "Map Pin", category: "Tourism Travel", path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z", tags: "location pin map travel" },
+  { id: "compass", name: "Compass", category: "Tourism Travel", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z", tags: "compass direction navigation travel" },
+  { id: "camera", name: "Camera", category: "Tourism Travel", path: "M12 15.2c-1.77 0-3.2-1.43-3.2-3.2 0-1.77 1.43-3.2 3.2-3.2 1.77 0 3.2 1.43 3.2 3.2 0 1.77-1.43 3.2-3.2 3.2zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z", tags: "camera photo travel tourism" },
+  { id: "hotel", name: "Hotel", category: "Tourism Travel", path: "M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z", tags: "hotel accommodation travel" },
+  // ── Fauna ─────────────────────────────────────────────────────────────────────
+  { id: "eagle", name: "Eagle", category: "Fauna", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z", tags: "eagle bird animal" },
+  { id: "fish", name: "Fish", category: "Fauna", path: "M20 12c0-4.42-3.58-8-8-8s-8 3.58-8 8 3.58 8 8 8 8-3.58 8-8zm-10 3l-1.41-1.41L11.17 11H7V9h4.17L9.59 7.41 11 6l4 4-4 4z", tags: "fish sea animal marine" },
+  { id: "paw", name: "Paw Print", category: "Fauna", path: "M4.5 9.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5S6 7.17 6 8s-.67 1.5-1.5 1.5zm3-5C6.67 4.5 6 3.83 6 3s.67-1.5 1.5-1.5S9 2.17 9 3s-.67 1.5-1.5 1.5zm5 0C11.67 4.5 11 3.83 11 3s.67-1.5 1.5-1.5S14 2.17 14 3s-.67 1.5-1.5 1.5zm3 5c-.83 0-1.5-.67-1.5-1.5S15.17 7 16 7s1.5.67 1.5 1.5S16.83 9.5 16 9.5zm-4 .5c-2.33 0-7 1.17-7 3.5V16h14v-2.5c0-2.33-4.67-3.5-7-3.5z", tags: "paw pet animal dog cat" },
+  { id: "bee", name: "Bee", category: "Fauna", path: "M19 10h-1.26A8.008 8.008 0 0 0 13 4.06V2h-2v2.06A8.008 8.008 0 0 0 6.26 10H5c-1.1 0-2 .9-2 2s.9 2 2 2h.05c.24 2.48 1.49 4.68 3.37 6.17L7 22h2l1-1.5c.62.17 1.29.5 2 .5s1.38-.33 2-.5L15 22h2l-1.42-1.83C17.46 18.68 18.71 16.48 18.95 14H19c1.1 0 2-.9 2-2s-.9-2-2-2zm-7 8c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z", tags: "bee insect animal nature" },
+  { id: "lion", name: "Lion", category: "Fauna", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z", tags: "lion animal king strength" },
+  // ── Flora ─────────────────────────────────────────────────────────────────────
+  { id: "leaf", name: "Leaf", category: "Flora", path: "M17 8C8 10 5.9 16.17 3.82 21H5.71C6.72 18.5 8.24 15.33 11 13c-1.56 2.5-2.04 5.5-1.96 8h2c.06-3.5 1.5-6.5 4-8.5V21h2V8z", tags: "leaf plant nature eco" },
+  { id: "tree", name: "Tree", category: "Flora", path: "M17 12h-5V7h-2v5H5l7 7 7-7zM5 20v2h14v-2H5z", tags: "tree plant nature environment" },
+  { id: "flower", name: "Flower", category: "Flora", path: "M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zm0 0c0-4.97-4.03-9-9-9 0 4.97 4.03 9 9 9zm0-18C7.03 4 3 8.03 3 13c4.97 0 9-4.03 9-9zm0 0c4.97 0 9 4.03 9 9-4.97 0-9-4.03-9-9z", tags: "flower plant nature bloom" },
+  { id: "seedling", name: "Seedling", category: "Flora", path: "M12 22V12m0 0C12 7 7 3 2 3c0 5 4 9 10 9zm0 0c0-5 5-9 10-9-1 5-5 9-10 9z", tags: "seedling plant grow nature" },
+  // ── Religion ──────────────────────────────────────────────────────────────────
+  { id: "cross-religion", name: "Cross", category: "Religion", path: "M10 2v8H2v4h8v8h4v-8h8v-4h-8V2z", tags: "cross religion christian church" },
+  { id: "star-of-david", name: "Star of David", category: "Religion", path: "M12 2l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6z", tags: "star david religion jewish" },
+  { id: "crescent", name: "Crescent Moon", category: "Religion", path: "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z", tags: "crescent moon religion islam" },
+  { id: "om", name: "Om Symbol", category: "Religion", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z", tags: "om hinduism religion spiritual" },
+  // ── Architecture ──────────────────────────────────────────────────────────────
+  { id: "arch", name: "Arch", category: "Architecture", path: "M4 22V10c0-4.42 3.58-8 8-8s8 3.58 8 8v12h-4v-6c0-2.21-1.79-4-4-4s-4 1.79-4 4v6H4z", tags: "arch architecture building design" },
+  { id: "column", name: "Column", category: "Architecture", path: "M3 3h18v3H3zm2 3h14v13H5zm2 2v9h10V8H7zm-4 11h18v2H3z", tags: "column pillar architecture classical" },
+  { id: "blueprint", name: "Blueprint", category: "Architecture", path: "M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z", tags: "blueprint plan architecture design" },
+  { id: "ruler", name: "Ruler", category: "Architecture", path: "M21.71 3.29l-1-1c-.39-.39-1.02-.39-1.41 0L2.29 19.29c-.39.39-.39 1.02 0 1.41l1 1c.39.39 1.02.39 1.41 0L21.71 4.71c.39-.39.39-1.02 0-1.42zM5.42 16L16 5.42 18.58 8 8 18.58 5.42 16z", tags: "ruler measure architecture design" },
+  // ── Recreation Entertainment ──────────────────────────────────────────────────
+  { id: "music", name: "Music Note", category: "Recreation Entertainment", path: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z", tags: "music note entertainment" },
+  { id: "film", name: "Film", category: "Recreation Entertainment", path: "M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z", tags: "film movie entertainment cinema" },
+  { id: "game", name: "Game Controller", category: "Recreation Entertainment", path: "M15 7.5V2H9v5.5l3 3 3-3zM7.5 9H2v6h5.5l3-3-3-3zM9 16.5V22h6v-5.5l-3-3-3 3zM16.5 9l-3 3 3 3H22V9h-5.5z", tags: "game controller entertainment play" },
+  { id: "theater", name: "Theater Masks", category: "Recreation Entertainment", path: "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 14.5h-2V15h2v1.5zm0-3h-2v-2h2v2zm0-4h-2V8h2v1.5zm5 7H16v-1.5h2V17zm0-3h-2v-2h2v2zm0-4h-2V8h2v1.5zM7 17H5v-1.5h2V17zm0-3H5v-2h2v2zm0-4H5V8h2v1.5z", tags: "theater drama entertainment arts" },
+  // ── People ────────────────────────────────────────────────────────────────────
+  { id: "person", name: "Person", category: "People", path: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z", tags: "person user people human" },
+  { id: "group", name: "Group", category: "People", path: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z", tags: "group people team community" },
+  { id: "family", name: "Family", category: "People", path: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z", tags: "family people home" },
+  { id: "worker", name: "Worker", category: "People", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z", tags: "worker employee person professional" },
+  // ── Symbols Decoration ────────────────────────────────────────────────────────
+  { id: "star", name: "Star", category: "Symbols Decoration", path: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z", tags: "star rating favorite" },
+  { id: "crown", name: "Crown", category: "Symbols Decoration", path: "M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z", tags: "crown royal premium" },
+  { id: "shield", name: "Shield", category: "Symbols Decoration", path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z", tags: "shield security protection" },
+  { id: "anchor", name: "Anchor", category: "Symbols Decoration", path: "M17 8C19 10.76 17.26 13.15 14.78 14.19L14 14.5V17c0 1.65-1.35 3-3 3s-3-1.35-3-3v-2.5l-.78-.31C4.74 13.15 3 10.76 3 8V4h2v4c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4V4h2v4zM9 4H7V2h2v2zm8 0h-2V2h2v2z", tags: "anchor sea marine symbol" },
+  { id: "infinity", name: "Infinity", category: "Symbols Decoration", path: "M18.6 6.62c-1.44 0-2.8.56-3.77 1.53L12 10.66 10.48 12h.01L7.8 14.39c-.64.64-1.49.99-2.4.99-1.87 0-3.39-1.51-3.39-3.38S3.53 8.62 5.4 8.62c.91 0 1.76.35 2.44 1.03l1.13 1 1.51-1.34L9.22 8.2C8.2 7.18 6.84 6.62 5.4 6.62 2.42 6.62 0 9.04 0 12s2.42 5.38 5.4 5.38c1.44 0 2.8-.56 3.77-1.53l2.83-2.5.01.01L13.52 12h-.01l2.69-2.39c.64-.64 1.49-.99 2.4-.99 1.87 0 3.39 1.51 3.39 3.38s-1.52 3.38-3.39 3.38c-.9 0-1.76-.35-2.44-1.03l-1.14-1.01-1.51 1.34 1.27 1.12c1.02 1.01 2.37 1.57 3.82 1.57 2.98 0 5.4-2.41 5.4-5.38s-2.42-5.38-5.4-5.38z", tags: "infinity loop symbol eternal" },
+  { id: "diamond", name: "Diamond", category: "Symbols Decoration", path: "M19 3H5L2 9l10 12L22 9l-3-6zm-8.5 6l1.5-3 1.5 3h-3zm5 0l-1.5-3h3l-1.5 3zM5.5 8l1.5-3h2L7.5 8H5.5zm1.5 1l3 4-4.5-4H7zm5 4l3-4h1.5L12 13zm3-4h1.5l-1.5 3-1.5-3H15z", tags: "diamond gem shape" },
+  { id: "ribbon-award", name: "Award Ribbon", category: "Symbols Decoration", path: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 10.82C5.84 10.4 5 9.3 5 8V7h2v3.82zM19 8c0 1.3-.84 2.4-2 2.82V7h2v1z", tags: "award ribbon badge honor" },
+  { id: "laurel", name: "Laurel Wreath", category: "Symbols Decoration", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15H9V8h2v9zm4 0h-2V8h2v9z", tags: "laurel wreath honor victory" },
+  // ── Stars Shapes ──────────────────────────────────────────────────────────────
+  { id: "star-5", name: "5-Point Star", category: "Stars Shapes", path: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z", tags: "star five point shape" },
+  { id: "star-6", name: "6-Point Star", category: "Stars Shapes", path: "M12 2l2.4 4.8H20l-4 3.6 1.6 5.6L12 13.2l-5.6 2.8 1.6-5.6-4-3.6h5.6z", tags: "star six point hexagram" },
+  { id: "pentagon", name: "Pentagon", category: "Stars Shapes", path: "M12 2l9.5 6.9-3.6 11.1H6.1L2.5 8.9z", tags: "pentagon five sides shape" },
+  { id: "hexagon", name: "Hexagon", category: "Stars Shapes", path: "M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A1.01 1.01 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9z", tags: "hexagon six sides shape" },
+  { id: "octagon", name: "Octagon", category: "Stars Shapes", path: "M17.6 2H6.4L2 6.4v11.2L6.4 22h11.2L22 17.6V6.4z", tags: "octagon eight sides shape" },
+  { id: "circle-shape", name: "Circle", category: "Stars Shapes", path: "M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2z", tags: "circle round shape" },
+  { id: "triangle-shape", name: "Triangle", category: "Stars Shapes", path: "M1 21h22L12 2z", tags: "triangle three sides shape" },
+  { id: "square-shape", name: "Square", category: "Stars Shapes", path: "M3 3h18v18H3z", tags: "square four sides shape" },
 ];
