@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useEditorStore } from "./store";
 import { renderStampSvg, CANVAS_SIZE } from "./svgUtils";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -22,7 +22,7 @@ function MeasurementGrid({ widthMm, heightMm, size }: { widthMm: number; heightM
   // Grid step: 5 SVG units = minor, 25 SVG units = major (visually ~1mm and 5mm)
   const minor = 5;
   const major = 25;
-  const lines: JSX.Element[] = [];
+  const lines: React.ReactElement[] = [];
 
   for (let x = 0; x <= size; x += minor) {
     const isMajor = x % major === 0;
