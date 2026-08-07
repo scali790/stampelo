@@ -1,5 +1,7 @@
-// Minimal health check - no dependencies, no imports
-// Used to verify Vercel can start a serverless function at all
-export default function handler(req: any, res: any) {
-  res.status(200).json({ status: "ok", ts: Date.now() });
-}
+// Diagnostic: test express import
+import express from "express";
+const app = express();
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({ status: "ok", step: "express", ts: Date.now() });
+});
+export default app;
