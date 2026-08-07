@@ -113,3 +113,7 @@ temp/
 client/public/__manus__/version.json
 .project-config.json
 api/server.js
+
+# Generated API function bundle (produced by pnpm build, not source)
+api/server.js
+api/health.ts
