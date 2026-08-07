@@ -4,8 +4,7 @@
  * page indices to stamp, and returns a new PDF buffer with the stamp embedded.
  */
 
-import { PDFDocument, PDFPage, degrees } from "pdf-lib";
-import sharp from "sharp";
+import { PDFDocument, degrees } from "pdf-lib";
 
 export interface StampPlacement {
   /** 0-100: percentage of page width from left */
@@ -55,6 +54,8 @@ export async function mergePdfStamp(
 
   // Rasterise SVG → PNG with transparent background
   const svgBuffer = Buffer.from(stampSvg);
+  // Dynamic import avoids native binary crash at module initialization on Vercel
+  const sharp = (await import("sharp")).default;
   const pngBuffer = await sharp(svgBuffer)
     .resize(stampPx, stampPx, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
