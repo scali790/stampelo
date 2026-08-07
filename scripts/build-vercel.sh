@@ -1,6 +1,6 @@
 #!/bin/bash
 # Vercel Build Output API script
-# Source: api/server.ts (maintainable)
+# Source: src/server-entry.ts (maintainable)
 # Generated: .vercel/output/functions/api/server.func/index.js (gitignored)
 set -e
 
@@ -15,8 +15,8 @@ mkdir -p .vercel/output/functions/api/server.func
 echo "[build] Copying frontend to .vercel/output/static..."
 cp -r dist/public/. .vercel/output/static/
 
-echo "[build] Bundling api/server.ts with esbuild..."
-npx esbuild api/server.ts \
+echo "[build] Bundling src/server-entry.ts with esbuild..."
+npx esbuild src/server-entry.ts \
   --platform=node \
   --format=esm \
   --bundle \
