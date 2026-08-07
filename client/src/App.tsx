@@ -4,6 +4,11 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import Account from "./pages/Account";
+import Legal from "./pages/Legal";
+import PdfEditor from "./pages/PdfEditor";
+import DownloadPage from "./pages/Download";
+import Editor from "./pages/Editor";
 import Home from "./pages/Home";
 
 function Router() {
@@ -11,6 +16,13 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/editor"} component={Editor} />
+      <Route path={"/download"} component={DownloadPage} />
+      <Route path={"/account"} component={Account} />
+      <Route path={"/pdf-editor"} component={PdfEditor} />
+      <Route path={"/privacy"} component={Legal} />
+      <Route path={"/terms"} component={Legal} />
+      <Route path={"/refund"} component={Legal} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -1,3 +1,6 @@
+import { designRouter } from "./routers/design";
+import { orderRouter } from "./routers/order";
+import { templateRouter, iconRouter } from "./routers/template";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -17,12 +20,10 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  design: designRouter,
+  order: orderRouter,
+  template: templateRouter,
+  icon: iconRouter,
 });
 
 export type AppRouter = typeof appRouter;

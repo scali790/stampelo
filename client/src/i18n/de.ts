@@ -1,0 +1,91 @@
+import type { Translations } from "./en";
+
+export const de = {
+  nav: {
+    home: "Startseite",
+    editor: "Stempel erstellen",
+    pdfEditor: "PDF-Stempel",
+    account: "Mein Konto",
+    pricing: "Preise",
+    signIn: "Anmelden",
+    signOut: "Abmelden",
+  },
+  hero: {
+    badge: "Professioneller Stempel-Ersteller",
+    title: "Individuelle Stempel",
+    titleHighlight: "in Minuten erstellen",
+    subtitle: "Erstellen Sie professionelle Gummistempel, Firmenstempel und individuelle Logos mit unserem leistungsstarken Online-Editor. Download als PNG, SVG, PDF oder DOCX.",
+    cta: "Stempel erstellen — Kostenlos",
+    ctaSecondary: "Vorlagen ansehen",
+    trustBadge: "Vertraut von über 50.000 Unternehmen weltweit",
+  },
+  features: {
+    title: "Alles was Sie brauchen",
+    subtitle: "Eine vollständige Stempel-Designplattform mit professionellen Werkzeugen",
+    items: [
+      { title: "4 Stempelformen", desc: "Rund, oval, rechteckig und dreieckig für jeden Anwendungsfall." },
+      { title: "300+ Vorlagen", desc: "Starten Sie mit einer professionellen Vorlage und passen Sie sie an Ihre Marke an." },
+      { title: "SVG-Icon-Bibliothek", desc: "200+ integrierte Icons in 18 Kategorien, plus benutzerdefinierter SVG-Upload." },
+      { title: "Text auf Pfad", desc: "Kreisförmiger Text, der dem Stempelrand perfekt folgt." },
+      { title: "Spezialeffekte", desc: "Verwittert, Gold-Metallic und Silber-Metallic Optionen." },
+      { title: "Alle Formate", desc: "Download als PNG (600 DPI), SVG, EPS, PDF oder Word DOCX." },
+      { title: "PDF-Editor", desc: "Platzieren Sie Ihren Stempel auf einem vorhandenen PDF-Dokument." },
+      { title: "Sofortige Lieferung", desc: "Dateien werden nach der Zahlung sofort per E-Mail zugesandt." },
+    ],
+  },
+  pricing: {
+    title: "Einfache, transparente Preise",
+    subtitle: "Einmalig bezahlen, für immer herunterladen. Keine Abonnements.",
+    plans: [
+      { name: "PROMO", price: "2,50 $", formats: ["PNG"], desc: "Hochwertiges PNG mit transparentem Hintergrund" },
+      { name: "ECONOM", price: "3,50 $", formats: ["SVG", "PNG"], desc: "Skalierbarer Vektor + PNG" },
+      { name: "PREMIUM", price: "4,50 $", formats: ["PDF", "SVG", "PNG"], desc: "PDF + SVG + PNG — druckfertig", popular: true },
+      { name: "VIP WORD", price: "5,50 $", formats: ["DOCX", "PDF", "SVG", "PNG"], desc: "Word-Dokument + alle Formate" },
+    ],
+    included: "Alle Pläne beinhalten: Transparenter Hintergrund · Hohe Auflösung · Kostenlose Verwitterungsversion",
+  },
+  faq: {
+    title: "Häufig gestellte Fragen",
+    items: [
+      { q: "Welche Dateiformate erhalte ich?", a: "Je nach Plan: PNG (600 DPI, transparenter Hintergrund), SVG (skalierbarer Vektor), PDF (druckfertig) und DOCX (Microsoft Word). Alle Dateien haben transparente Hintergründe." },
+      { q: "Kann ich meinen Stempel nach dem Download bearbeiten?", a: "Ihr Design wird mit einem permanenten Freigabe-Link gespeichert. Sie können jederzeit zum Editor zurückkehren, Änderungen vornehmen und einen neuen Download erwerben." },
+      { q: "Ist meine Zahlung sicher?", a: "Ja. Alle Zahlungen werden von Stripe verarbeitet, einem PCI-DSS Level 1 zertifizierten Zahlungsdienstleister. Wir speichern Ihre Kartendaten niemals." },
+      { q: "Wie schnell erhalte ich meine Dateien?", a: "Ihr Download-Link wird sofort nach der Zahlungsbestätigung generiert und innerhalb von Minuten per E-Mail zugesandt." },
+      { q: "Kann ich den Stempel für kommerzielle Zwecke verwenden?", a: "Ja. Alle heruntergeladenen Stempel gehören Ihnen und können ohne Einschränkungen für persönliche und kommerzielle Zwecke verwendet werden." },
+      { q: "Was ist der Verwitterungseffekt?", a: "Der Verwitterungseffekt verleiht Ihrem Stempel ein gealtertes, abgenutztes Aussehen — als ob er viele Male verwendet wurde. Er ist bei allen kostenpflichtigen Plänen kostenlos enthalten." },
+      { q: "Muss ich ein Konto erstellen?", a: "Kein Konto erforderlich, um einen Stempel zu erstellen und herunterzuladen. Mit einem Konto können Sie Ihre Designs speichern und auf Ihren Kaufverlauf zugreifen." },
+      { q: "Kann ich meinen Stempel auf ein PDF-Dokument platzieren?", a: "Ja! Verwenden Sie unseren PDF-Stempel-Editor, um ein beliebiges PDF hochzuladen, Ihren Stempel auf einer beliebigen Seite zu positionieren und das gestempelte Dokument zu exportieren." },
+    ],
+  },
+  testimonials: {
+    title: "Was unsere Kunden sagen",
+    items: [
+      { name: "Sarah M.", role: "Kleinunternehmerin", text: "Stampelo hat mir Stunden gespart. Ich habe in weniger als 5 Minuten einen professionellen Stempel für meine Rechnungen erstellt. Die Qualität ist hervorragend." },
+      { name: "Dr. James K.", role: "Arztpraxis", text: "Die medizinischen Vorlagen sind genau das, was ich brauchte. Sauber, professionell, und das SVG-Format funktioniert perfekt mit meinen Dokumenten." },
+      { name: "Anna L.", role: "Notarin", text: "Ich habe viele Stempel-Ersteller ausprobiert. Stampelo ist bei weitem der beste — die Text-auf-Pfad-Funktion ist makellos und die Exportqualität ist hervorragend." },
+    ],
+  },
+  cta: {
+    title: "Bereit, Ihren Stempel zu erstellen?",
+    subtitle: "Schließen Sie sich Tausenden von Unternehmen an, die Stampelo für ihre individuellen Stempel vertrauen.",
+    button: "Design starten — Kostenlos",
+  },
+  footer: {
+    tagline: "Professioneller Online-Stempel-Ersteller",
+    links: {
+      product: "Produkt",
+      editor: "Stempel-Editor",
+      pdfEditor: "PDF-Editor",
+      templates: "Vorlagen",
+      pricing: "Preise",
+      legal: "Rechtliches",
+      privacy: "Datenschutzrichtlinie",
+      terms: "Nutzungsbedingungen",
+      refund: "Rückgaberecht",
+      support: "Support",
+      contact: "Kontakt",
+      faq: "FAQ",
+    },
+    copyright: "© 2024 Stampelo. Alle Rechte vorbehalten.",
+  },
+};
