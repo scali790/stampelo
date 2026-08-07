@@ -1,95 +1,100 @@
-import { boolean, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  integer, pgTable, text, timestamp, varchar, boolean, jsonb, serial
+} from "drizzle-orm/pg-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
-export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
-  id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+// ─── Auth.js required tables ──────────────────────────────────────────────────
+export const users = pgTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
+  email: varchar("email", { length: 320 }).unique(),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
+  image: text("image"),
+  role: text("role").$type<"user" | "admin">().default("user").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const accounts = pgTable("accounts", {
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  provider: text("provider").notNull(),
+  providerAccountId: text("providerAccountId").notNull(),
+  refresh_token: text("refresh_token"),
+  access_token: text("access_token"),
+  expires_at: integer("expires_at"),
+  token_type: text("token_type"),
+  scope: text("scope"),
+  id_token: text("id_token"),
+  session_state: text("session_state"),
+});
+
+export const sessions = pgTable("sessions", {
+  sessionToken: text("sessionToken").primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const verificationTokens = pgTable("verificationTokens", {
+  identifier: text("identifier").notNull(),
+  token: text("token").notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+// ─── Application tables ───────────────────────────────────────────────────────
+export const designs = pgTable("designs", {
+  id: serial("id").primaryKey(),
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }),
+  shareToken: varchar("shareToken", { length: 32 }).unique().notNull(),
+  name: text("name").default("Untitled Stamp"),
+  stateJson: jsonb("stateJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }),
+  designId: integer("designId").references(() => designs.id, { onDelete: "set null" }),
+  stripeSessionId: varchar("stripeSessionId", { length: 255 }).unique(),
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 255 }),
   email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  plan: varchar("plan", { length: 32 }).notNull(),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  amountCents: integer("amountCents").notNull(),
+  currency: varchar("currency", { length: 8 }).default("chf").notNull(),
+  downloadUrls: jsonb("downloadUrls"),
+  fulfilledAt: timestamp("fulfilledAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-
-
-// ─── Designs ────────────────────────────────────────────────────────────────
-export const designs = mysqlTable("designs", {
-  id: int("id").autoincrement().primaryKey(),
-  shareToken: varchar("shareToken", { length: 16 }).notNull().unique(),
-  userId: int("userId"),
-  stateJson: json("stateJson").notNull(),
-  thumbnailDataUrl: text("thumbnailDataUrl"),
-  name: varchar("name", { length: 255 }).default("Untitled Stamp"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type Design = typeof designs.$inferSelect;
-export type InsertDesign = typeof designs.$inferInsert;
-
-// ─── Orders ─────────────────────────────────────────────────────────────────
-export const orders = mysqlTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
-  stripeSessionId: varchar("stripeSessionId", { length: 128 }).unique(),
-  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 128 }),
-  designId: int("designId").notNull(),
-  userId: int("userId"),
-  email: varchar("email", { length: 320 }).notNull(),
-  plan: mysqlEnum("plan", ["promo", "econom", "premium", "vip"]).notNull(),
-  status: mysqlEnum("status", ["pending", "paid", "fulfilled", "failed"]).default("pending").notNull(),
-  effects: varchar("effects", { length: 64 }).default(""),
-  downloadLinks: json("downloadLinks"),
-  amountCents: int("amountCents").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert;
-
-// ─── Templates ──────────────────────────────────────────────────────────────
-export const templates = mysqlTable("templates", {
-  id: int("id").autoincrement().primaryKey(),
-  category: varchar("category", { length: 64 }).notNull(),
+export const templates = pgTable("templates", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 128 }).unique(),
   name: varchar("name", { length: 255 }).notNull(),
   nameDE: varchar("nameDE", { length: 255 }),
-  slug: varchar("slug", { length: 128 }),
-  shape: varchar("shape", { length: 32 }).default("round"),
+  category: varchar("category", { length: 128 }).notNull(),
+  shape: varchar("shape", { length: 32 }),
   searchTerms: text("searchTerms"),
-  stateJson: json("stateJson").notNull(),
+  stateJson: jsonb("stateJson"),
   thumbnailSvg: text("thumbnailSvg"),
-  sortOrder: int("sortOrder").default(0),
+  sortOrder: integer("sortOrder").default(0),
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type Template = typeof templates.$inferSelect;
-export type InsertTemplate = typeof templates.$inferInsert;
-
-// ─── Icons ──────────────────────────────────────────────────────────────────
-export const icons = mysqlTable("icons", {
-  id: int("id").autoincrement().primaryKey(),
-  category: varchar("category", { length: 64 }).notNull(),
+export const icons = pgTable("icons", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 128 }).notNull(),
-  svgContent: text("svgContent").notNull(),
-  tags: varchar("tags", { length: 512 }).default(""),
-  sortOrder: int("sortOrder").default(0),
+  category: varchar("category", { length: 128 }).notNull(),
+  tags: text("tags").default(""),
+  svgPath: text("svgPath").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type Icon = typeof icons.$inferSelect;
-export type InsertIcon = typeof icons.$inferInsert;
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Design = typeof designs.$inferSelect;
+export type Order = typeof orders.$inferSelect;
+export type Template = typeof templates.$inferSelect;

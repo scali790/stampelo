@@ -1,97 +1,73 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+/**
+ * Storage helpers — Vercel Blob (production) or local filesystem (development).
+ * Replaces Manus storage proxy entirely.
+ */
+import { put, del, head } from "@vercel/blob";
+import { createHash } from "crypto";
+import * as fs from "fs/promises";
+import * as path from "path";
 
-import { ENV } from "./_core/env";
+const IS_VERCEL = !!process.env.BLOB_READ_WRITE_TOKEN;
+const LOCAL_STORAGE_DIR = path.join(process.cwd(), ".local-storage");
 
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
-
-  if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
-  }
-
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
-}
-
-function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
-}
-
-function appendHashSuffix(relKey: string): string {
-  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-  const lastDot = relKey.lastIndexOf(".");
-  if (lastDot === -1) return `${relKey}_${hash}`;
-  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
-}
-
+/**
+ * Upload a buffer to storage.
+ * Returns { key, url } where url is publicly accessible.
+ */
 export async function storagePut(
   relKey: string,
-  data: Buffer | Uint8Array | string,
-  contentType = "application/octet-stream",
+  data: Buffer,
+  contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
-
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
-
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
+  if (IS_VERCEL) {
+    const blob = await put(relKey, data, {
+      access: "public",
+      contentType,
+      addRandomSuffix: false,
+    });
+    return { key: relKey, url: blob.url };
   }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
-  return { key, url: `/manus-storage/${key}` };
+  // Local dev fallback
+  const localPath = path.join(LOCAL_STORAGE_DIR, relKey);
+  await fs.mkdir(path.dirname(localPath), { recursive: true });
+  await fs.writeFile(localPath, data);
+  const url = `/local-storage/${relKey}`;
+  return { key: relKey, url };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
+/**
+ * Generate a presigned/direct URL for a stored object.
+ * For Vercel Blob, objects are public so the URL is returned directly.
+ */
+export async function storageGet(
+  relKey: string,
+  _expiresIn = 3600
+): Promise<{ key: string; url: string }> {
+  if (IS_VERCEL) {
+    // Vercel Blob URLs are public; reconstruct from base URL
+    const baseUrl = process.env.BLOB_BASE_URL || "";
+    const url = baseUrl ? `${baseUrl}/${relKey}` : relKey;
+    return { key: relKey, url };
+  }
+  return { key: relKey, url: `/local-storage/${relKey}` };
 }
 
-export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = normalizeKey(relKey);
-
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
+/**
+ * Delete a stored object.
+ */
+export async function storageDelete(url: string): Promise<void> {
+  if (IS_VERCEL) {
+    await del(url);
+  } else {
+    const relKey = url.replace("/local-storage/", "");
+    const localPath = path.join(LOCAL_STORAGE_DIR, relKey);
+    await fs.unlink(localPath).catch(() => {});
   }
+}
 
-  const { url } = (await resp.json()) as { url: string };
-  return url;
+/**
+ * Generate a deterministic key for an export file.
+ */
+export function exportKey(orderId: number, format: string): string {
+  return `exports/${orderId}/${format}.${format === "docx" ? "docx" : format}`;
 }
