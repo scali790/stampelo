@@ -6,11 +6,21 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ENV } from "../_core/env";
 
-const PLAN_PRICES: Record<string, number> = {
-  promo: 250,
-  econom: 350,
-  premium: 450,
-  vip: 550,
+// Prices in CHF cents (CHF is the Swiss Franc, ISO 4217: CHF)
+// Stripe supports CHF natively for Swiss merchants.
+const PLAN_PRICES_CHF: Record<string, number> = {
+  promo: 250,    // CHF 2.50
+  econom: 350,   // CHF 3.50
+  premium: 450,  // CHF 4.50
+  vip: 550,      // CHF 5.50
+};
+
+// Human-readable plan descriptions for Stripe checkout
+const PLAN_DESCRIPTIONS: Record<string, string> = {
+  promo:   "PNG download (high-res, transparent background)",
+  econom:  "PNG + SVG vector download",
+  premium: "PNG + SVG + PDF download",
+  vip:     "PNG + SVG + PDF + DOCX download",
 };
 
 export const orderRouter = router({
@@ -40,7 +50,7 @@ export const orderRouter = router({
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-      const origin = ctx.req.headers.origin || "https://stampelo.com";
+      const origin = ctx.req.headers.origin || "https://www.stampelo.ch";
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
@@ -48,12 +58,12 @@ export const orderRouter = router({
         allow_promotion_codes: true,
         line_items: [{
           price_data: {
-            currency: "usd",
+            currency: "chf",
             product_data: {
               name: `Stampelo — ${input.plan.toUpperCase()} Plan`,
-              description: `Custom stamp download (${input.plan})`,
+              description: PLAN_DESCRIPTIONS[input.plan] ?? `Custom stamp download (${input.plan})`,
             },
-            unit_amount: PLAN_PRICES[input.plan],
+            unit_amount: PLAN_PRICES_CHF[input.plan],
           },
           quantity: 1,
         }],
@@ -76,7 +86,7 @@ export const orderRouter = router({
         email: input.email,
         plan: input.plan,
         status: "pending",
-        amountCents: PLAN_PRICES[input.plan]!,
+        amountCents: PLAN_PRICES_CHF[input.plan]!,
       });
 
       return { checkoutUrl: session.url! };

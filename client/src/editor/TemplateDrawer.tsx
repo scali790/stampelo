@@ -15,7 +15,10 @@ export function TemplateDrawer({ open, onClose }: Props) {
   const [category, setCategory] = useState<string | undefined>();
   const { loadState } = useEditorStore();
 
-  const { data: templates = [] } = trpc.template.list.useQuery({ category, search });
+  const [page, setPage] = useState(1);
+  const { data: result } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
+  const templates = result?.items ?? [];
+  const totalPages = result?.totalPages ?? 1;
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
@@ -89,6 +92,13 @@ export function TemplateDrawer({ open, onClose }: Props) {
               </div>
             )}
           </ScrollArea>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-3 py-2 border-t text-xs">
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
+              <span className="text-muted-foreground">Page {page} / {totalPages}</span>
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

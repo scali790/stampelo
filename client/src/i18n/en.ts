@@ -12,10 +12,10 @@ export const en = {
     badge: "Professional Stamp Maker",
     title: "Design Custom Stamps",
     titleHighlight: "in Minutes",
-    subtitle: "Create professional rubber stamps, corporate seals, and custom logos with our powerful online editor. Download in PNG, SVG, PDF, or DOCX format.",
+    subtitle: "Create professional rubber stamps, corporate seals, and custom logos with our powerful online editor. Download in PNG, SVG, PDF, or DOCX format. Trusted by businesses across Switzerland and Europe.",
     cta: "Create Your Stamp — Free",
     ctaSecondary: "View Templates",
-    trustBadge: "Trusted by 50,000+ businesses worldwide",
+    trustBadge: "Trusted by businesses across Switzerland and Europe",
   },
   features: {
     title: "Everything You Need",
@@ -35,10 +35,10 @@ export const en = {
     title: "Simple, Transparent Pricing",
     subtitle: "Pay once, download forever. No subscriptions.",
     plans: [
-      { name: "PROMO", price: "$2.50", formats: ["PNG"], desc: "High-quality PNG with transparent background" },
-      { name: "ECONOM", price: "$3.50", formats: ["SVG", "PNG"], desc: "Scalable vector + PNG" },
-      { name: "PREMIUM", price: "$4.50", formats: ["PDF", "SVG", "PNG"], desc: "PDF + SVG + PNG — print-ready", popular: true },
-      { name: "VIP WORD", price: "$5.50", formats: ["DOCX", "PDF", "SVG", "PNG"], desc: "Word document + all formats" },
+      { name: "PROMO", price: "CHF 2.50", formats: ["PNG"], desc: "High-quality PNG with transparent background" },
+      { name: "ECONOM", price: "CHF 3.50", formats: ["SVG", "PNG"], desc: "Scalable vector + PNG" },
+      { name: "PREMIUM", price: "CHF 4.50", formats: ["PDF", "SVG", "PNG"], desc: "PDF + SVG + PNG — print-ready", popular: true },
+      { name: "VIP WORD", price: "CHF 5.50", formats: ["DOCX", "PDF", "SVG", "PNG"], desc: "Word document + all formats" },
     ],
     included: "All plans include: Transparent background · High resolution · Free Shabby version",
   },
@@ -84,7 +84,7 @@ export const en = {
       contact: "Contact Us",
       faq: "FAQ",
     },
-    copyright: "© 2024 Stampelo. All rights reserved.",
+    copyright: "© 2025 Stampelo. All rights reserved.",
   },
 } as const;
 

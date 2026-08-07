@@ -17,7 +17,7 @@ export const de = {
     subtitle: "Erstellen Sie professionelle Gummistempel, Firmenstempel und individuelle Logos mit unserem leistungsstarken Online-Editor. Download als PNG, SVG, PDF oder DOCX.",
     cta: "Stempel erstellen — Kostenlos",
     ctaSecondary: "Vorlagen ansehen",
-    trustBadge: "Vertraut von über 50.000 Unternehmen weltweit",
+    trustBadge: "Vertraut von Unternehmen in der Schweiz und Europa",
   },
   features: {
     title: "Alles was Sie brauchen",
@@ -37,10 +37,10 @@ export const de = {
     title: "Einfache, transparente Preise",
     subtitle: "Einmalig bezahlen, für immer herunterladen. Keine Abonnements.",
     plans: [
-      { name: "PROMO", price: "2,50 $", formats: ["PNG"], desc: "Hochwertiges PNG mit transparentem Hintergrund" },
-      { name: "ECONOM", price: "3,50 $", formats: ["SVG", "PNG"], desc: "Skalierbarer Vektor + PNG" },
-      { name: "PREMIUM", price: "4,50 $", formats: ["PDF", "SVG", "PNG"], desc: "PDF + SVG + PNG — druckfertig", popular: true },
-      { name: "VIP WORD", price: "5,50 $", formats: ["DOCX", "PDF", "SVG", "PNG"], desc: "Word-Dokument + alle Formate" },
+      { name: "PROMO", price: "CHF 2.50", formats: ["PNG"], desc: "Hochwertiges PNG mit transparentem Hintergrund" },
+      { name: "ECONOM", price: "CHF 3.50", formats: ["SVG", "PNG"], desc: "Skalierbarer Vektor + PNG" },
+      { name: "PREMIUM", price: "CHF 4.50", formats: ["PDF", "SVG", "PNG"], desc: "PDF + SVG + PNG — druckfertig", popular: true },
+      { name: "VIP WORD", price: "CHF 5.50", formats: ["DOCX", "PDF", "SVG", "PNG"], desc: "Word-Dokument + alle Formate" },
     ],
     included: "Alle Pläne beinhalten: Transparenter Hintergrund · Hohe Auflösung · Kostenlose Verwitterungsversion",
   },
@@ -86,6 +86,6 @@ export const de = {
       contact: "Kontakt",
       faq: "FAQ",
     },
-    copyright: "© 2024 Stampelo. Alle Rechte vorbehalten.",
+    copyright: "© 2025 Stampelo. Alle Rechte vorbehalten.",
   },
 };

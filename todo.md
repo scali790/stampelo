@@ -57,15 +57,15 @@
 - [x] PDF page viewer (PDF.js)
 - [x] Stamp placement on page (drag/resize/rotate)
 - [x] Multi-page navigation
-- [ ] Export stamped PDF (requires server-side PDF merge — post-launch)
-- [ ] Checkout flow for PDF stamping (post-launch)
+- [x] Export stamped PDF (server-side PDF merge via pdf-lib + Sharp — COMPLETE)
+- [ ] Checkout flow for PDF stamping (post-launch enhancement)
 
 ## Phase 7: User Accounts
 - [x] Registration and login (Manus OAuth)
 - [x] User profile page
 - [x] Saved designs list with load
 - [x] Purchase history with repeat-download access
-- [ ] Admin panel (order management, template management) — post-launch
+- [x] Admin panel (orders, customers, designs, templates, fulfillment retry — COMPLETE)
 
 ## Phase 8: Marketing & SEO
 - [x] Marketing landing page (hero, features, pricing, FAQ, testimonials, CTA)

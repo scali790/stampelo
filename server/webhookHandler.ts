@@ -24,12 +24,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
     return res.status(400).send("Webhook signature verification failed");
   }
 
-  // Handle test events
-  if (event.id.startsWith("evt_test_")) {
-    console.log("[Webhook] Test event detected, returning verification response");
-    return res.json({ verified: true });
-  }
-
+  // All events must pass Stripe signature verification above.
+  // No test-mode bypass is permitted in production code.
+  // Stripe test-mode events are signed with the webhook secret and pass constructEvent normally.
   console.log(`[Webhook] Event: ${event.type} (${event.id})`);
 
   if (event.type === "checkout.session.completed") {
@@ -128,9 +125,9 @@ async function sendFulfillmentEmail(email: string, orderId: number, plan: string
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const downloadUrl = `${process.env.VITE_FRONTEND_FORGE_API_URL?.replace("/api", "") || "https://stampelo.com"}/download?orderId=${orderId}`;
+    const downloadUrl = `${process.env.APP_BASE_URL || "https://www.stampelo.ch"}/download?orderId=${orderId}`;
     await resend.emails.send({
-      from: "Stampelo <noreply@stampelo.com>",
+      from: process.env.EMAIL_FROM || "Stampelo <noreply@stampelo.ch>",
       to: email,
       subject: "Your Stampelo stamp is ready for download!",
       html: `
@@ -141,7 +138,7 @@ async function sendFulfillmentEmail(email: string, orderId: number, plan: string
             Download Your Stamp
           </a>
           <p style="color: #666; font-size: 12px;">This link is valid for 7 days. Order ID: ${orderId}</p>
-          <p style="color: #666; font-size: 12px;">Questions? Contact support@stampelo.com</p>
+          <p style="color: #666; font-size: 12px;">Questions? Contact <a href="mailto:support@stampelo.ch">support@stampelo.ch</a></p>
         </div>
       `,
     });

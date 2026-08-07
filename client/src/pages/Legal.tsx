@@ -5,7 +5,7 @@ import { ArrowLeft, Stamp } from "lucide-react";
 const LEGAL_CONTENT = {
   privacy: {
     title: "Privacy Policy",
-    lastUpdated: "January 1, 2024",
+    lastUpdated: "August 1, 2025",
     content: `
 ## 1. Information We Collect
 
@@ -21,7 +21,7 @@ We use essential cookies for session management and authentication. We use analy
 
 ## 4. Data Retention
 
-Your stamp designs are stored on our servers for a minimum of 12 months to allow repeat downloads. You may request deletion of your data at any time by contacting support@stampelo.com.
+Your stamp designs are stored on our servers for a minimum of 12 months to allow repeat downloads. You may request deletion of your data at any time by contacting support@stampelo.ch.
 
 ## 5. Third-Party Services
 
@@ -29,12 +29,12 @@ We use the following third-party services: Stripe (payments), Resend (email deli
 
 ## 6. Contact
 
-For privacy-related inquiries, contact: support@stampelo.com
+For privacy-related inquiries, contact: support@stampelo.ch
     `,
   },
   terms: {
     title: "Terms of Service",
-    lastUpdated: "January 1, 2024",
+    lastUpdated: "August 1, 2025",
     content: `
 ## 1. Acceptance of Terms
 
@@ -60,14 +60,18 @@ Payments are processed securely via Stripe. Due to the digital nature of our pro
 
 Stampelo is provided "as is" without warranty of any kind. Our liability is limited to the amount paid for the specific transaction giving rise to the claim.
 
-## 7. Changes to Terms
+## 7. Governing Law
+
+These Terms are governed by and construed in accordance with the laws of Switzerland. Any disputes shall be subject to the exclusive jurisdiction of the courts of Switzerland.
+
+## 8. Changes to Terms
 
 We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of the updated terms.
     `,
   },
   refund: {
     title: "Refund Policy",
-    lastUpdated: "January 1, 2024",
+    lastUpdated: "August 1, 2025",
     content: `
 ## Our Refund Policy
 
@@ -84,7 +88,7 @@ We will issue a full refund in the following circumstances:
 
 ## How to Request a Refund
 
-To request a refund, contact us at support@stampelo.com within 7 days of your purchase. Please include your order ID and a description of the issue. We aim to respond within 24 hours.
+To request a refund, contact us at support@stampelo.ch within 7 days of your purchase. Please include your order ID and a description of the issue. We aim to respond within 24 hours.
 
 ## Processing Time
 
