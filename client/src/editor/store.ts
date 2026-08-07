@@ -35,12 +35,12 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     visible: true,
     text: "YOUR COMPANY NAME",
     font: "Arial",
-    fontSize: 14,
+    fontSize: 11,
     bold: true,
     italic: false,
     align: "center",
     inverse: false,
-    radius: 85,
+    radius: 78,
     letterSpacing: 100,
     startAngle: 0,
   };
@@ -52,7 +52,7 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     visible: true,
     text: "STAMP",
     font: "Arial",
-    fontSize: 20,
+    fontSize: 14,
     bold: true,
     italic: false,
     x: 50,
@@ -258,4 +258,3 @@ export const useEditorStore = create<EditorStore>()(
     }
   )
 );
-

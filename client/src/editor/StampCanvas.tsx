@@ -30,7 +30,10 @@ import type { Stamp } from "./types";
 // This represents "how much of the full 250-unit canvas is shown at 100%".
 // For user-facing zoom we use scale directly as a multiplier on the plate display size.
 
-const SAFE_FACTOR = 0.82;
+// SAFE_FACTOR = 0.72: stamp plate fills ~72% of the smaller viewport dimension.
+// This leaves ~14% margin on each side — comfortable for editing without feeling cramped.
+// Hard safety conditions (maxByW/maxByH) further guarantee no overflow.
+const SAFE_FACTOR = 0.72;
 const MIN_SCALE = 0.5;   // minimum plate display px = 0.5 * plate SVG units
 const MAX_SCALE = 20;    // maximum plate display px = 20 * plate SVG units
 const SCALE_STEP = 0.25; // zoom step in scale units
