@@ -117,3 +117,4 @@ api/server.js
 # Generated API function bundle (produced by pnpm build, not source)
 api/server.js
 api/health.ts
+.vercel/output/

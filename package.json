@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
-    "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild api/server.ts --platform=node --format=esm --bundle --external:sharp --external:@vercel/blob --external:pdf-lib --external:docx --external:pg --external:express --external:stripe --external:@auth/express --external:@auth/drizzle-adapter --external:drizzle-orm --external:@trpc/server --external:zod --external:superjson --external:nanoid --external:dotenv --external:@aws-sdk/client-s3 --external:@aws-sdk/s3-request-presigner --outfile=api/server.js",
+    "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
@@ -16,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx server/seed300Templates.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "vercel-build": "bash scripts/build-vercel.sh"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
