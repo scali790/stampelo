@@ -7,6 +7,39 @@ import { trpc } from "@/lib/trpc";
 import { useEditorStore } from "./store";
 import { Search } from "lucide-react";
 import { TEMPLATE_CATEGORIES } from "../../../shared/templateData";
+import { renderStampSvg, CANVAS_SIZE } from "./svgUtils";
+import type { Stamp } from "./types";
+
+// Generate a scaled-down SVG preview from template stateJson
+function TemplateSvgPreview({ stateJson }: { stateJson: unknown }) {
+  try {
+    const state = stateJson as { stamps?: Stamp[]; activeStampId?: string };
+    const stamp = state?.stamps?.[0];
+    if (!stamp) return <NoPreview />;
+    const svgStr = renderStampSvg(stamp);
+    // Scale down to fit the thumbnail (120px)
+    const scaled = svgStr.replace(
+      /(<svg[^>]*)\s+width="\d+"\s+height="\d+"/,
+      `$1 width="120" height="120"`
+    );
+    return (
+      <div
+        className="w-full aspect-square bg-white rounded mb-1 overflow-hidden"
+        dangerouslySetInnerHTML={{ __html: scaled }}
+      />
+    );
+  } catch {
+    return <NoPreview />;
+  }
+}
+
+function NoPreview() {
+  return (
+    <div className="w-full aspect-square bg-muted rounded mb-1 flex items-center justify-center text-xs text-muted-foreground">
+      No preview
+    </div>
+  );
+}
 
 interface Props { open: boolean; onClose: () => void; }
 
@@ -75,16 +108,10 @@ export function TemplateDrawer({ open, onClose }: Props) {
                     className="border rounded-lg p-2 cursor-pointer hover:border-primary hover:bg-accent/30 transition-all"
                     onClick={() => handleLoad(t)}
                   >
-                    {t.thumbnailSvg ? (
-                      <div
-                        className="w-full aspect-square bg-white rounded mb-1"
-                        dangerouslySetInnerHTML={{ __html: t.thumbnailSvg }}
-                      />
-                    ) : (
-                      <div className="w-full aspect-square bg-muted rounded mb-1 flex items-center justify-center text-xs text-muted-foreground">
-                        No preview
-                      </div>
-                    )}
+                    {t.thumbnailSvg
+                      ? <div className="w-full aspect-square bg-white rounded mb-1" dangerouslySetInnerHTML={{ __html: t.thumbnailSvg }} />
+                      : <TemplateSvgPreview stateJson={t.stateJson} />
+                    }
                     <p className="text-xs font-medium truncate">{t.name}</p>
                     <p className="text-[10px] text-muted-foreground">{t.category}</p>
                   </div>
