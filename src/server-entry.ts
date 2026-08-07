@@ -7,7 +7,6 @@
  * resolves and inlines them into the bundle. Dynamic import() is only for truly
  * external packages (sharp, pdf-lib, docx) that must be deferred to call time.
  */
-import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../server/routers";
