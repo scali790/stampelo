@@ -65,6 +65,8 @@ cat > .vercel/output/config.json << 'CFGEOF'
 }
 CFGEOF
 
+echo "[build] Running bundle verification..."
+bash scripts/verify-bundle.sh .vercel/output/functions/api/server.func/index.mjs
 echo "[build] Done. Static: $(ls .vercel/output/static | wc -l) files. Function: $(wc -c < .vercel/output/functions/api/server.func/index.mjs) bytes"
 
 # ── ESM experiment: test-a (index.mjs) ───────────────────────────────────────
