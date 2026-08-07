@@ -1,38 +1,46 @@
-// Diagnostic: catch import errors and surface them in response
+// Diagnostic: test each router import individually
 import express from "express";
 
 const app = express();
 
-// Health with no deps
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({ status: "ok", step: "express-only", ts: Date.now() });
+app.get("/api/health", (_req: any, res: any) => {
+  res.status(200).json({ status: "ok", ts: Date.now() });
 });
 
-// Try importing tRPC router and catch any error
-let routerError: string | null = null;
-let routerLoaded = false;
+// Test each router import individually
+const results: Record<string, string> = {};
 
-async function tryLoadRouter() {
-  try {
-    const { appRouter } = await import("../server/routers");
-    const { createContext } = await import("../server/_core/context");
-    const { createExpressMiddleware } = await import("@trpc/server/adapters/express");
-    app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
-    routerLoaded = true;
-  } catch (err: any) {
-    routerError = err?.message + "\n" + err?.stack;
-    console.error("[DIAG] Router load error:", err);
+async function testImports() {
+  const tests = [
+    ["trpc", () => import("../server/_core/trpc")],
+    ["db", () => import("../server/db")],
+    ["auth", () => import("../server/auth")],
+    ["context", () => import("../server/_core/context")],
+    ["systemRouter", () => import("../server/_core/systemRouter")],
+    ["designRouter", () => import("../server/routers/design")],
+    ["orderRouter", () => import("../server/routers/order")],
+    ["templateRouter", () => import("../server/routers/template")],
+    ["pdfEditorRouter", () => import("../server/routers/pdfEditor")],
+    ["adminRouter", () => import("../server/routers/admin")],
+    ["webhookHandler", () => import("../server/webhookHandler")],
+    ["exportService", () => import("../server/exportService")],
+    ["storage", () => import("../server/storage")],
+  ] as const;
+
+  for (const [name, loader] of tests) {
+    try {
+      await loader();
+      results[name] = "ok";
+    } catch (err: any) {
+      results[name] = `ERROR: ${err?.message?.substring(0, 200)}`;
+    }
   }
 }
 
-// Load router and report status
-tryLoadRouter().then(() => {
-  app.get("/api/health/router", (_req, res) => {
-    res.status(routerLoaded ? 200 : 500).json({
-      routerLoaded,
-      error: routerError,
-      ts: Date.now()
-    });
+testImports().then(() => {
+  app.get("/api/health/imports", (_req: any, res: any) => {
+    const failed = Object.entries(results).filter(([, v]) => v !== "ok");
+    res.status(failed.length > 0 ? 500 : 200).json({ results, ts: Date.now() });
   });
 });
 
