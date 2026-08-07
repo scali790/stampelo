@@ -1,47 +1,51 @@
-// Diagnostic: test each router import individually
+// Diagnostic: test each import with separate endpoints
 import express from "express";
 
 const app = express();
-
 app.get("/api/health", (_req: any, res: any) => {
   res.status(200).json({ status: "ok", ts: Date.now() });
 });
 
-// Test each router import individually
-const results: Record<string, string> = {};
+// Test 1: trpc only
+import("../server/_core/trpc").then(() => {
+  app.get("/api/health/1-trpc", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/1-trpc", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
+});
 
-async function testImports() {
-  const tests = [
-    ["trpc", () => import("../server/_core/trpc")],
-    ["db", () => import("../server/db")],
-    ["auth", () => import("../server/auth")],
-    ["context", () => import("../server/_core/context")],
-    ["systemRouter", () => import("../server/_core/systemRouter")],
-    ["designRouter", () => import("../server/routers/design")],
-    ["orderRouter", () => import("../server/routers/order")],
-    ["templateRouter", () => import("../server/routers/template")],
-    ["pdfEditorRouter", () => import("../server/routers/pdfEditor")],
-    ["adminRouter", () => import("../server/routers/admin")],
-    ["webhookHandler", () => import("../server/webhookHandler")],
-    ["exportService", () => import("../server/exportService")],
-    ["storage", () => import("../server/storage")],
-  ] as const;
+// Test 2: db
+import("../server/db").then(() => {
+  app.get("/api/health/2-db", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/2-db", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
+});
 
-  for (const [name, loader] of tests) {
-    try {
-      await loader();
-      results[name] = "ok";
-    } catch (err: any) {
-      results[name] = `ERROR: ${err?.message?.substring(0, 200)}`;
-    }
-  }
-}
+// Test 3: auth
+import("../server/auth").then(() => {
+  app.get("/api/health/3-auth", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/3-auth", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
+});
 
-testImports().then(() => {
-  app.get("/api/health/imports", (_req: any, res: any) => {
-    const failed = Object.entries(results).filter(([, v]) => v !== "ok");
-    res.status(failed.length > 0 ? 500 : 200).json({ results, ts: Date.now() });
-  });
+// Test 4: webhookHandler
+import("../server/webhookHandler").then(() => {
+  app.get("/api/health/4-webhook", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/4-webhook", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
+});
+
+// Test 5: pdfEditor router
+import("../server/routers/pdfEditor").then(() => {
+  app.get("/api/health/5-pdfeditor", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/5-pdfeditor", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
+});
+
+// Test 6: full appRouter
+import("../server/routers").then(() => {
+  app.get("/api/health/6-router", (_req: any, res: any) => res.json({ ok: true }));
+}).catch((e: any) => {
+  app.get("/api/health/6-router", (_req: any, res: any) => res.status(500).json({ error: e.message, stack: e.stack?.substring(0,500) }));
 });
 
 export default app;
