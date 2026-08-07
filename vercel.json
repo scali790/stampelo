@@ -5,7 +5,7 @@
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "functions": {
-    "api/server.js": {
+    "api/server.ts": {
       "maxDuration": 60
     }
   },
