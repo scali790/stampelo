@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import { useEditorStore } from "./store";
 import { renderStampSvg } from "./svgUtils";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -13,8 +12,9 @@ export function StampCanvas() {
   // Render at 500x500 on desktop, 300x300 on mobile
   const displaySize = isMobile ? 300 : 500;
   const svgContent = renderStampSvg(stamp);
+  // Use regex to match any width/height values so the replacement is robust
   const displaySvg = svgContent
-    .replace('width="250" height="250"', `width="${displaySize}" height="${displaySize}"`);
+    .replace(/(<svg[^>]*)\s+width="\d+"\s+height="\d+"/, `$1 width="${displaySize}" height="${displaySize}"`);
 
   return (
     <div

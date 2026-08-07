@@ -124,7 +124,8 @@ function renderFrame(el: FrameElement, stamp: Stamp): string {
 }
 
 // ─── Text on path renderer ────────────────────────────────────────────────────
-function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): string {
+// Returns { defs, svg } so defs can be hoisted to top-level <defs>
+function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): { defs: string; svg: string } {
   const cx = CANVAS_CENTER;
   const cy = CANVAS_CENTER;
   const maxR = (stamp.widthMm / 150) * (CANVAS_SIZE / 2) * 0.95;
@@ -156,10 +157,12 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): s
   const anchor = el.align;
   const offset = el.align === "center" ? "50%" : el.align === "right" ? "100%" : "0%";
 
-  return `<defs><path id="${pathId}" d="${pathD}" fill="none"/></defs>
-<text fill="${el.color}" ${fontStyle}${spacing}>
+  return {
+    defs: `<path id="${pathId}" d="${pathD}" fill="none"/>`,
+    svg: `<text fill="${el.color}" ${fontStyle}${spacing}>
   <textPath href="#${pathId}" startOffset="${offset}" text-anchor="${anchor}">${escapeXml(el.text)}</textPath>
-</text>`;
+</text>`,
+  };
 }
 
 // ─── Center text renderer ─────────────────────────────────────────────────────
@@ -179,14 +182,14 @@ function renderImage(el: ImageElement): string {
 }
 
 // ─── Element dispatcher ───────────────────────────────────────────────────────
-function renderElement(el: StampElement, stamp: Stamp, idx: number): string {
-  if (!el.visible) return "";
+function renderElement(el: StampElement, stamp: Stamp, idx: number): { defs: string; svg: string } {
+  if (!el.visible) return { defs: "", svg: "" };
   switch (el.type) {
-    case "frame": return renderFrame(el, stamp);
+    case "frame": return { defs: "", svg: renderFrame(el, stamp) };
     case "text-on-path": return renderTextOnPath(el, stamp, idx);
-    case "center-text": return renderCenterText(el);
-    case "image": return renderImage(el);
-    default: return "";
+    case "center-text": return { defs: "", svg: renderCenterText(el) };
+    case "image": return { defs: "", svg: renderImage(el) };
+    default: return { defs: "", svg: "" };
   }
 }
 
@@ -203,9 +206,11 @@ export function renderStampSvg(stamp: Stamp, opts?: { watermark?: boolean; forEx
   if (effects.gold) defs.push(getGoldFilter(goldId));
   if (effects.silver) defs.push(getSilverFilter(silverId));
   const filterAttr = effects.shabby ? ` filter="url(#${filterId})"` : "";
-  const elementsHtml = stamp.elements
-    .map((el, idx) => renderElement(el, stamp, idx))
-    .join("\n");
+  // Collect element defs (e.g. textPath paths) and SVG bodies separately
+  // so all defs are hoisted to top-level <defs> and never inside a clipped group
+  const elementResults = stamp.elements.map((el, idx) => renderElement(el, stamp, idx));
+  elementResults.forEach(r => { if (r && r.defs) defs.push(r.defs); });
+  const elementsHtml = elementResults.map(r => r ? r.svg : "").join("\n");
   const watermarkHtml = opts?.watermark
     ? `<text x="${CANVAS_CENTER}" y="${CANVAS_CENTER + 30}" fill="rgba(0,0,0,0.15)" font-size="12" font-family="Arial" text-anchor="middle" transform="rotate(-30, ${CANVAS_CENTER}, ${CANVAS_CENTER})">PREVIEW — stampelo.com</text>`
     : "";
