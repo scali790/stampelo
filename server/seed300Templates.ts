@@ -4,11 +4,13 @@
  * Run: DATABASE_URL="$DATABASE_URL" npx tsx server/seed300Templates.ts
  */
 
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { templates } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
-const db = drizzle(process.env.DATABASE_URL!);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL!, ssl: { rejectUnauthorized: false } });
+const db = drizzle(pool);
 
 // ─── Helper to build stamp state JSON ─────────────────────────────────────────
 function makeRound(text1: string, text2: string, color = "#1a3a6b") {
