@@ -152,8 +152,12 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
     pathD = `M ${startX.toFixed(2)},${startY.toFixed(2)} A ${r},${r} 0 0,1 ${midX.toFixed(2)},${midY.toFixed(2)} A ${r},${r} 0 0,1 ${startX.toFixed(2)},${startY.toFixed(2)}`;
   }
 
-  const fontStyle = `font-family="${el.font}" font-size="${el.fontSize}"${el.bold ? ' font-weight="bold"' : ''}${el.italic ? ' font-style="italic"' : ''}`;
-  const spacing = el.letterSpacing !== 100 ? ` letter-spacing="${((el.letterSpacing - 100) * 0.08).toFixed(2)}"` : "";
+  // Auto-fit font size and letter-spacing to the available arc length.
+  // This prevents text from overflowing the arc and being clipped.
+  const fitted = fitArcText(el.text, r, el.fontSize, el.letterSpacing);
+  const fontStyle = `font-family="${el.font}" font-size="${fitted.fontSize}"${el.bold ? ' font-weight="bold"' : ''}${el.italic ? ' font-style="italic"' : ''}`;
+  const spacingPx = (fitted.letterSpacing - 100) * 0.08;
+  const spacing = spacingPx !== 0 ? ` letter-spacing="${spacingPx.toFixed(2)}"` : "";
   const anchor = el.align;
   const offset = el.align === "center" ? "50%" : el.align === "right" ? "100%" : "0%";
 
@@ -163,6 +167,65 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
   <textPath href="#${pathId}" startOffset="${offset}" text-anchor="${anchor}">${escapeXml(el.text)}</textPath>
 </text>`,
   };
+}
+
+// ─── Arc-length auto-fit helper ───────────────────────────────────────────────
+// Computes the font size and letter-spacing needed to fit text on a circular arc.
+//
+// Available arc = PI * r * ARC_USABLE_FRACTION  (top semicircle × usable fraction)
+// Required arc  = numChars * fontSize * CHAR_WIDTH_RATIO + letterSpacingExtra
+//
+// Strategy:
+//   1. Try the requested fontSize with the requested letterSpacing.
+//   2. If it doesn't fit, reduce letterSpacing down to MIN_LETTER_SPACING.
+//   3. If still doesn't fit, reduce fontSize (keeping letterSpacing at minimum).
+//   4. Never go below MIN_FONT_SIZE.
+//
+// Returns { fontSize, letterSpacing } — both may be reduced from the input values.
+
+const ARC_USABLE_FRACTION = 0.78;   // use 78% of top semicircle (leaves 11% margin each side)
+const ARC_CHAR_WIDTH_RATIO = 0.58;  // Arial Bold average char width / fontSize
+const MIN_FONT_SIZE_ARC = 6;        // minimum readable font size on arc
+const MIN_LETTER_SPACING = 70;      // minimum letter-spacing (30% compression)
+
+function fitArcText(
+  text: string,
+  arcRadius: number,
+  requestedFontSize: number,
+  requestedLetterSpacing: number
+): { fontSize: number; letterSpacing: number } {
+  const numChars = text.length;
+  if (numChars === 0) return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
+
+  const availableArc = Math.PI * arcRadius * ARC_USABLE_FRACTION;
+
+  // Helper: compute required arc length for given fontSize and letterSpacing
+  function requiredArc(fs: number, ls: number): number {
+    const spacingPx = (ls - 100) * 0.08;
+    return numChars * fs * ARC_CHAR_WIDTH_RATIO + spacingPx * (numChars - 1);
+  }
+
+  // Step 1: try requested values
+  if (requiredArc(requestedFontSize, requestedLetterSpacing) <= availableArc) {
+    return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
+  }
+
+  // Step 2: reduce letter-spacing to minimum, keep fontSize
+  if (requiredArc(requestedFontSize, MIN_LETTER_SPACING) <= availableArc) {
+    // Binary search for the minimum letterSpacing that fits
+    let lo = MIN_LETTER_SPACING, hi = requestedLetterSpacing;
+    for (let i = 0; i < 8; i++) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (requiredArc(requestedFontSize, mid) <= availableArc) hi = mid;
+      else lo = mid + 1;
+    }
+    return { fontSize: requestedFontSize, letterSpacing: hi };
+  }
+
+  // Step 3: reduce fontSize (with minimum letter-spacing)
+  const maxFontSize = availableArc / (numChars * ARC_CHAR_WIDTH_RATIO);
+  const fontSize = Math.max(MIN_FONT_SIZE_ARC, Math.floor(maxFontSize));
+  return { fontSize, letterSpacing: MIN_LETTER_SPACING };
 }
 
 // ─── Center text renderer ─────────────────────────────────────────────────────
@@ -211,14 +274,30 @@ export function renderStampSvg(stamp: Stamp, opts?: { watermark?: boolean; forEx
   const elementResults = stamp.elements.map((el, idx) => renderElement(el, stamp, idx));
   elementResults.forEach(r => { if (r && r.defs) defs.push(r.defs); });
   const elementsHtml = elementResults.map(r => r ? r.svg : "").join("\n");
+  // Separate text-on-path elements from other elements.
+  // Text-on-path is rendered OUTSIDE the clip group to prevent the stamp shape
+  // clip-path from truncating glyphs that sit near the plate boundary.
+  // The clip group is only needed for frame/background fills.
+  const clippedElements: string[] = [];
+  const unclippedElements: string[] = [];
+  stamp.elements.forEach((el, idx) => {
+    const result = elementResults[idx];
+    if (!result || !result.svg) return;
+    if (el.type === "text-on-path") {
+      unclippedElements.push(result.svg);
+    } else {
+      clippedElements.push(result.svg);
+    }
+  });
   const watermarkHtml = opts?.watermark
     ? `<text x="${CANVAS_CENTER}" y="${CANVAS_CENTER + 30}" fill="rgba(0,0,0,0.15)" font-size="12" font-family="Arial" text-anchor="middle" transform="rotate(-30, ${CANVAS_CENTER}, ${CANVAS_CENTER})">PREVIEW — stampelo.com</text>`
     : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}">
   <defs>${defs.join("\n")}</defs>
   <g clip-path="url(#${clipId})"${filterAttr}>
-    ${elementsHtml}
+    ${clippedElements.join("\n")}
   </g>
+  ${unclippedElements.join("\n")}
   ${watermarkHtml}
 </svg>`;
 }
