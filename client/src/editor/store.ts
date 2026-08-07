@@ -11,12 +11,20 @@ import type {
   StampShape,
   TextOnPathElement,
 } from "./types";
+import { getStampSafeGeometry, fitCenterTextFontSize, fitArcTextRadius } from "./svgUtils";
 
 // ─── Default stamp factory ────────────────────────────────────────────────────
 export function createDefaultStamp(shape: StampShape = "round"): Stamp {
   const frameId = nanoid();
   const textId = nanoid();
   const centerTextId = nanoid();
+  const widthMm = shape === "rectangular" ? 55 : 38;
+  const heightMm = shape === "rectangular" ? 25 : 38;
+  const geo = getStampSafeGeometry(widthMm);
+  const arcFontSize = 10;
+  const { radiusPct: arcRadiusPct } = fitArcTextRadius(arcFontSize, geo.safeInnerR, geo.maxR);
+  const centerTextContent = "STAMP";
+  const centerFontSize = fitCenterTextFontSize(centerTextContent, geo.safeInnerR, 16);
 
   const frame: FrameElement = {
     id: frameId,
@@ -35,12 +43,12 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     visible: true,
     text: "YOUR COMPANY NAME",
     font: "Arial",
-    fontSize: 11,
+    fontSize: arcFontSize,
     bold: true,
     italic: false,
     align: "center",
     inverse: false,
-    radius: 78,
+    radius: arcRadiusPct,
     letterSpacing: 100,
     startAngle: 0,
   };
@@ -50,9 +58,9 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     type: "center-text",
     color: "#1a3a6b",
     visible: true,
-    text: "STAMP",
+    text: centerTextContent,
     font: "Arial",
-    fontSize: 14,
+    fontSize: centerFontSize,
     bold: true,
     italic: false,
     x: 50,
@@ -62,8 +70,8 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
   return {
     id: nanoid(),
     shape,
-    widthMm: shape === "rectangular" ? 55 : 38,
-    heightMm: shape === "rectangular" ? 25 : 38,
+    widthMm,
+    heightMm,
     color: "#1a3a6b",
     effects: { shabby: false, gold: false, silver: false },
     elements: [frame, textOnPath, centerText],

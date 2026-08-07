@@ -232,3 +232,73 @@ function escapeXml(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 }
+
+// ─── Stamp geometry helpers ───────────────────────────────────────────────────
+//
+// These helpers operate in SVG coordinate space (CANVAS_SIZE=250).
+// They are independent of viewport zoom and safe to use in createDefaultStamp(),
+// template generation, and future user text auto-fit.
+//
+// Canonical inner safe area:
+//   maxR           = (widthMm / 150) * (CANVAS_SIZE / 2) * 0.95
+//   frameR         = frameRadiusPct/100 * maxR
+//   frameInnerEdge = frameR - frameStrokeWidth / 2
+//   safeInnerR     = frameInnerEdge - INNER_SAFETY_MARGIN
+//
+// Text-on-path glyph outer edge (not inverted):
+//   glyphTop = arcRadius + fontSize * ARC_ASCENDER_RATIO
+//   Safe: glyphTop + ARC_EXTRA_GAP <= safeInnerR
+//
+// Center text width (Arial Bold approximation):
+//   totalWidth = numChars * fontSize * ARIAL_BOLD_CHAR_WIDTH_RATIO
+//   Safe: totalWidth <= safeInnerR * 2 * CENTER_TEXT_WIDTH_FACTOR
+
+const INNER_SAFETY_MARGIN = 2.5;
+const ARC_ASCENDER_RATIO = 0.28;
+const ARC_EXTRA_GAP = 1.5;
+const ARIAL_BOLD_CHAR_WIDTH_RATIO = 0.58;
+const CENTER_TEXT_WIDTH_FACTOR = 0.82;
+
+export interface StampSafeGeometry {
+  maxR: number;
+  safeInnerR: number;
+  maxArcRadius: number;
+  maxCenterFontSize: number;
+}
+
+export function getStampSafeGeometry(
+  widthMm: number,
+  frameRadiusPct = 95,
+  frameStrokeWidth = 3
+): StampSafeGeometry {
+  const maxR = (widthMm / 150) * (CANVAS_SIZE / 2) * 0.95;
+  const frameR = (frameRadiusPct / 100) * maxR;
+  const frameInnerEdge = frameR - frameStrokeWidth / 2;
+  const safeInnerR = frameInnerEdge - INNER_SAFETY_MARGIN;
+  const defaultArcFontSize = 10;
+  const maxArcRadius = safeInnerR - defaultArcFontSize * ARC_ASCENDER_RATIO - ARC_EXTRA_GAP;
+  const maxCenterFontSize = (safeInnerR * 2 * CENTER_TEXT_WIDTH_FACTOR) / (5 * ARIAL_BOLD_CHAR_WIDTH_RATIO);
+  return { maxR, safeInnerR, maxArcRadius, maxCenterFontSize };
+}
+
+export function fitCenterTextFontSize(
+  text: string,
+  safeInnerR: number,
+  maxFontSize = 24
+): number {
+  const numChars = text.length;
+  if (numChars === 0) return maxFontSize;
+  const availableWidth = safeInnerR * 2 * CENTER_TEXT_WIDTH_FACTOR;
+  const fontSize = availableWidth / (numChars * ARIAL_BOLD_CHAR_WIDTH_RATIO);
+  return Math.min(maxFontSize, Math.max(6, Math.floor(fontSize)));
+}
+
+export function fitArcTextRadius(
+  fontSize: number,
+  safeInnerR: number,
+  maxR: number
+): { radiusSvg: number; radiusPct: number } {
+  const radiusSvg = safeInnerR - fontSize * ARC_ASCENDER_RATIO - ARC_EXTRA_GAP;
+  const radiusPct = Math.round((radiusSvg / maxR) * 100);
+  return { radiusSvg, radiusPct };
+}
