@@ -16,6 +16,10 @@ import { handleDownload } from "../server/downloadHandler";
 import { authMiddleware } from "../server/auth";
 
 const app = express();
+// Trust Vercel/reverse-proxy X-Forwarded-Proto so req.protocol returns "https".
+// Required for @auth/express to construct https:// callback URLs correctly.
+// See: https://expressjs.com/en/guide/behind-proxies.html
+app.set("trust proxy", true);
 
 // ── Permanent health endpoint (no subsystem dependencies) ─────────────────────
 app.get("/api/health", (_req, res) => {
