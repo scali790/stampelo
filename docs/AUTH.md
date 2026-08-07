@@ -25,8 +25,9 @@ Stampelo uses **Auth.js** (`@auth/express` v0.12) with two providers: Resend mag
 ```ts
 app.set("trust proxy", true);
 ```
-
 This line **must** be present in `src/server-entry.ts`. Vercel terminates HTTPS before forwarding requests to Express. Without `trust proxy`, `req.protocol` returns `http`, causing Auth.js to generate `http://` callback URLs, which Google OAuth and Resend reject.
+
+**Status (2026-08-07): FIXED and deployed.** `app.set("trust proxy", true)` is present in `src/server-entry.ts`. `/api/auth/providers` confirmed returning `https://` URLs on production.
 
 ## Auth Origin
 

@@ -9,6 +9,8 @@
 | PREMIUM | CHF 4.50 | PNG + SVG + PDF |
 | VIP WORD | CHF 5.50 | PNG + SVG + PDF + DOCX |
 
+**EPS is not included in any plan.** The EPS generator exists in `server/exportService.ts` but is not wired into the webhook fulfillment handler. No customer receives an EPS file. See `docs/OPEN_ITEMS.md` for the open decision on whether to add EPS to a plan.
+
 ## Checkout Flow
 
 1. User selects a plan in the Download modal → `order.createCheckout` tRPC mutation called

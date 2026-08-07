@@ -41,9 +41,10 @@ Use this checklist after every production deployment or infrastructure change.
 
 - [ ] PNG download: transparent background, high resolution (~898 px for 38 mm at 600 DPI)
 - [ ] SVG download: valid SVG, scalable
-- [ ] EPS download: valid PostScript file
 - [ ] PDF download: opens in PDF viewer, stamp visible
 - [ ] DOCX download: opens in Word, stamp visible
+
+Note: EPS is not a customer-facing export and is not included in any plan. It is not tested here.
 
 ## PDF EDITOR
 

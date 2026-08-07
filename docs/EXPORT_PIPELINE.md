@@ -33,12 +33,14 @@ Exports are generated **server-side** after Stripe webhook confirmation. The exp
 
 ## Entitlement Matrix
 
-| Plan | PNG | SVG | PDF | DOCX |
-|---|---|---|---|---|
-| PROMO (CHF 2.50) | Yes | No | No | No |
-| ECONOM (CHF 3.50) | Yes | Yes | No | No |
-| PREMIUM (CHF 4.50) | Yes | Yes | Yes | No |
-| VIP WORD (CHF 5.50) | Yes | Yes | Yes | Yes |
+| Plan | PNG | SVG | PDF | DOCX | EPS |
+|---|---|---|---|---|---|
+| PROMO (CHF 2.50) | Yes | No | No | No | No |
+| ECONOM (CHF 3.50) | Yes | Yes | No | No | No |
+| PREMIUM (CHF 4.50) | Yes | Yes | Yes | No | No |
+| VIP WORD (CHF 5.50) | Yes | Yes | Yes | Yes | No |
+
+**EPS is not a customer-facing export.** `generateEps()` exists in `server/exportService.ts` but is not called by the webhook fulfillment handler and is not included in any plan. EPS is an internal capability only. See `docs/OPEN_ITEMS.md` for the decision on whether to expose it.
 
 ## Sharp Packaging
 
@@ -47,3 +49,11 @@ Exports are generated **server-side** after Stripe webhook confirmation. The exp
 ## Storage
 
 Generated files are stored in Vercel Blob at `orders/{orderId}/stamp.{ext}`. URLs are stored in `orders.downloadUrls`.
+
+## Download URL Security
+
+**Current state: Vercel Blob objects are stored with `access: "public"`.** Download URLs are permanent, unguessable (random suffix), but **not access-controlled**. Any party in possession of a URL can download the file without authentication.
+
+The `order.getByOrderId` tRPC procedure is a `publicProcedure` — it does not require authentication. This means the download page is accessible to anyone with the order ID.
+
+This is a known security gap. See `docs/SECURITY.md` and `docs/OPEN_ITEMS.md` for the remediation plan.

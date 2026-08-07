@@ -1,25 +1,29 @@
 # Open Items / Backlog
 
+**Last updated:** 2026-08-07
+
 ## P0 — LAUNCH BLOCKERS
 
-- [ ] **Stripe webhook secret registration** — `STRIPE_WEBHOOK_SECRET` must be set in Vercel. Obtain from Stripe Dashboard -> Developers -> Webhooks -> your endpoint -> Signing secret. Without this, webhook signature verification fails and no orders are fulfilled.
-- [ ] **Real Stripe test payment E2E** — Full checkout -> webhook -> fulfillment -> email -> download flow not yet smoke-tested on current production build.
-- [ ] **Real Google sign-in smoke test** — Google OAuth flow not verified on current production deployment.
+- [ ] **Stripe webhook secret registration** — `STRIPE_WEBHOOK_SECRET` must be set in Vercel. Obtain from Stripe Dashboard → Developers → Webhooks → your endpoint → Signing secret. Without this, webhook signature verification fails and no orders are fulfilled.
+- [ ] **Real Stripe test payment E2E** — Full checkout → webhook → fulfillment → email → download flow not yet smoke-tested on current production build.
+- [ ] **Real Google sign-in smoke test** — Google OAuth flow not verified on current production deployment. Auth HTTPS URLs are confirmed fixed (trust proxy + AUTH_URL deployed), but the full Google sign-in round-trip has not been completed end-to-end.
 
 ## P1 — HIGH PRIORITY
 
-- [ ] **Export verification on production** — PNG/SVG/EPS/PDF/DOCX generation not verified on current Vercel build (sharp binary packaging may have issues).
-- [ ] **PDF editor production smoke** — Upload -> merge -> download not verified on current Vercel production.
-- [ ] **Editor viewport UX verification** — Auto-fit zoom and measurement grid deployed but not yet verified in production. Confirm stamp renders large and centered, text-on-path renders correctly, Properties panel shows element properties when element is selected.
-- [ ] **Properties panel bug** — Properties panel may still show "Select an element" when element is selected. Possible event propagation issue between canvas click (deselect) and layer panel click (select).
+- [ ] **Download URL security — Vercel Blob objects are public** — All generated export files are stored with `access: "public"` in Vercel Blob. Download URLs are permanent and unguessable but not access-controlled. Any party with the URL can download without authentication. The `order.getByOrderId` procedure is also unauthenticated. **Remediation:** Switch Blob objects to private access and generate short-lived signed URLs per authenticated download request, OR proxy downloads through an authenticated server endpoint. This is P1 because it means purchased stamp files are accessible to anyone who obtains the URL — e.g., from a shared email or browser history. It is not P0 only because URLs are unguessable (random suffix) and the practical attack surface is low until traffic grows.
+- [ ] **Export verification on production** — PNG/SVG/PDF/DOCX generation not verified on current Vercel build. The `sharp` native binary packaging may have issues on the current deployment. EPS is not a customer export and does not require verification here.
+- [ ] **PDF editor production smoke** — Upload → merge → download not verified on current Vercel production.
+- [ ] **Editor viewport UX — stamp plate fit** — The editor workspace has been updated (commit `fb2cf77`) but the fix has not yet been verified in production. The intended behavior is: stamp plate fills ~75% of the central workspace, no large white generic page/canvas, grid behind the stamp, physical dimensions unchanged. The previous implementation incorrectly fitted `CANVAS_SIZE` (250 SVG units) to the viewport instead of the actual stamp plate diameter (~120 SVG units for a 38mm stamp). Verify after next deployment that a 38mm round stamp appears large and the white page metaphor is gone.
+- [ ] **Properties panel bug** — Properties panel may still show "Select an element" when an element is selected. Possible event propagation issue between canvas click (deselect) and layer panel click (select). Not yet verified on current production build.
+- [ ] **EPS plan decision** — `generateEps()` exists in `server/exportService.ts` but is not wired into any plan. Decision required: (a) add EPS to VIP plan, (b) add as a separate add-on, or (c) remove the generator. Until decided, EPS must not be listed as a customer-facing export in any documentation or marketing material.
 
 ## P2 — ENHANCEMENTS
 
-- [ ] **Analytics** — Umami analytics removed (was causing HTTP/2 errors). No replacement analytics configured.
+- [ ] **Analytics** — Umami analytics removed (was causing HTTP/2 errors from Manus-internal endpoint). No replacement analytics configured.
 - [ ] **Cross-browser verification** — Playwright E2E tests exist but not run against current production build.
 - [ ] **Stripe webhook event monitoring** — Set up Stripe Dashboard alerts for failed webhook deliveries.
 - [ ] **Admin panel smoke test** — Admin panel functionality not verified on current production.
-- [ ] **PDF upload size limit** — Vercel serverless functions have a 4.5 MB body limit by default. Large PDFs may fail.
+- [ ] **PDF upload size limit** — Vercel serverless functions have a 4.5 MB body limit by default. Large PDFs may fail. Consider streaming upload or increasing the limit.
 
 ## P3 — FUTURE
 
@@ -31,3 +35,11 @@
 - [ ] Structured data markup (Schema.org)
 - [ ] Multi-language URL routing (`/de/` prefix)
 - [ ] Thumbnail pre-generation for all templates server-side
+
+## RESOLVED (2026-08-07)
+
+- [x] **Auth HTTPS callback URLs** — `app.set("trust proxy", true)` applied and deployed. `/api/auth/providers` now returns `https://` URLs. `AUTH_URL=https://www.stampelo.com` confirmed set in Vercel.
+- [x] **Account page React hook-order regression (error #310)** — All `useState` and other hooks moved to top of component before any conditional return. Regression test added. Fix deployed.
+- [x] **Resend magic link email delivery** — New Resend API key created with Sending access scoped to `stampelo.com`. Magic link emails now delivered successfully.
+- [x] **Template previews showing "No preview"** — TemplateDrawer updated to generate SVG previews client-side from `stateJson` using `renderStampSvg()`. All 318 templates now show live previews.
+- [x] **textPath defs clipping** — `<path>` definitions for text-on-path are now hoisted to the top-level `<defs>` section, outside the clip group.

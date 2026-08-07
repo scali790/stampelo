@@ -1,10 +1,12 @@
 # Stampelo — Final Feature Parity Matrix
 
 **Reference product:** MyStampReady Constructor (mystampready.com)  
-**Audit date:** August 7, 2025  
-**Stampelo version:** v3.0 (checkpoint 07a2e6ea + production hardening)  
-**Domain:** www.stampelo.com  
+**Audit date:** August 7, 2026 (updated)
+**Stampelo version:** v3.1 (standalone production — Vercel + Neon + Auth.js)
+**Domain:** www.stampelo.com
 **Currency:** CHF
+
+**Corrections applied 2026-08-07:** EPS customer delivery status corrected; download URL security corrected; OAuth provider updated.
 
 ---
 
@@ -94,7 +96,8 @@
 |---|---|---|---|
 | PNG (600 DPI, transparent) | ✅ | ✅ | 16/16 shape×size combinations pass |
 | SVG (real vector) | ✅ | ✅ | Valid xmlns, no raster embed |
-| EPS (PostScript) | ✅ | ✅ | Valid %!PS-Adobe header + BoundingBox |
+| EPS (PostScript generator) | ✅ | ✅ | Valid %!PS-Adobe header + BoundingBox — generator exists |
+| EPS customer delivery | ✅ | ❌ | Generator not wired to any plan; no customer receives EPS |
 | PDF (print-ready) | ✅ | ✅ | Valid PDF, correct dimensions |
 | DOCX (Word) | ✅ | ✅ | Valid Office Open XML ZIP |
 
@@ -108,7 +111,7 @@
 |---|---|---|---|
 | Stripe checkout | ✅ | ✅ | CHF currency, 4 plans |
 | Webhook (idempotent) | ✅ | ✅ | Signature verified, no test bypass in production |
-| Signed download URLs | ✅ | ✅ | Time-limited S3 presigned URLs |
+| Signed download URLs | ✅ | ❌ | Vercel Blob objects are public; URLs are permanent and unguessable but not access-controlled. Remediation pending (see OPEN_ITEMS.md P1). |
 | Email delivery | ✅ | ✅ | Resend wired; DNS config needed for live |
 | Repeat download | ✅ | ✅ | By orderId |
 | PROMO plan (CHF 2.50) | ✅ | ✅ | PNG only |
@@ -136,7 +139,7 @@
 
 | Feature | MyStampReady | Stampelo | Notes |
 |---|---|---|---|
-| OAuth sign-in | ✅ | ✅ | Manus OAuth |
+| OAuth sign-in | ✅ | ✅ | Auth.js — Resend magic link + Google OAuth (Manus OAuth removed) |
 | Saved designs | ✅ | ✅ | |
 | Purchase history | ✅ | ✅ | |
 | Repeat download from account | ✅ | ✅ | |
@@ -185,7 +188,7 @@
 | Webhook test bypass (evt_test_ prefix) | ✅ REMOVED |
 | Stripe signature verification | ✅ All webhooks verified |
 | SVG upload sanitisation | ✅ Client-side, max 50KB |
-| Download URLs | ✅ Time-limited S3 presigned |
+| Download URLs | ❌ Vercel Blob public URLs — not access-controlled, not time-limited |
 | Admin route protection | ✅ adminProcedure role check |
 | JWT session signing | ✅ ENV.jwtSecret |
 
