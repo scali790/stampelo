@@ -1,13 +1,14 @@
 import { useEditorStore } from "./store";
-import { createDefaultStamp } from "./store";
-import type { CenterTextElement, FrameElement, ImageElement, StampShape, TextOnPathElement } from "./types";
+import { useState } from "react";
+import type { CenterTextElement, FrameElement, StampShape, TextOnPathElement } from "./types";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Circle, Square, Triangle, Minus, Type, AlignCenter, Image, Plus, Palette } from "lucide-react";
+import { Circle, Square, Triangle, Type, AlignCenter, Image, Palette } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { IconPickerDrawer } from "./IconPickerDrawer";
 
 const SHAPES: { value: StampShape; label: string; icon: React.ReactNode }[] = [
   { value: "round", label: "Round", icon: <Circle className="w-4 h-4" /> },
@@ -19,6 +20,7 @@ const SHAPES: { value: StampShape; label: string; icon: React.ReactNode }[] = [
 export function EditorToolbar() {
   const { getActiveStamp, activeStampId, updateStamp, addElement } = useEditorStore();
   const stamp = getActiveStamp();
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   if (!stamp) return null;
 
   const addFrame = () => {
@@ -48,101 +50,114 @@ export function EditorToolbar() {
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b bg-background flex-wrap">
-      {/* Shape selector */}
-      <div className="flex items-center gap-1.5">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap">Shape:</Label>
-        <Select
-          value={stamp.shape}
-          onValueChange={(v) => updateStamp(activeStampId, { shape: v as StampShape })}
-        >
-          <SelectTrigger className="h-7 w-32 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SHAPES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                <span className="flex items-center gap-1.5">{s.icon}{s.label}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <>
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-background flex-wrap">
+        {/* Shape selector */}
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Shape:</Label>
+          <Select
+            value={stamp.shape}
+            onValueChange={(v) => updateStamp(activeStampId, { shape: v as StampShape })}
+          >
+            <SelectTrigger className="h-7 w-32 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SHAPES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  <span className="flex items-center gap-1.5">{s.icon}{s.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Size — guard against NaN when user clears the input */}
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">Size:</Label>
+          <Input
+            type="number" min={10} max={150}
+            value={stamp.widthMm}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (!isNaN(v) && v >= 10 && v <= 150) updateStamp(activeStampId, { widthMm: v });
+            }}
+            className="h-7 w-16 text-xs"
+          />
+          <span className="text-xs text-muted-foreground">mm</span>
+          {(stamp.shape === "oval" || stamp.shape === "rectangular") && (
+            <>
+              <span className="text-xs text-muted-foreground">×</span>
+              <Input
+                type="number" min={10} max={150}
+                value={stamp.heightMm}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!isNaN(v) && v >= 10 && v <= 150) updateStamp(activeStampId, { heightMm: v });
+                }}
+                className="h-7 w-16 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">mm</span>
+            </>
+          )}
+        </div>
+
+        {/* Global color */}
+        <div className="flex items-center gap-1.5">
+          <Palette className="w-4 h-4 text-muted-foreground" />
+          <input
+            type="color" value={stamp.color}
+            onChange={(e) => updateStamp(activeStampId, { color: e.target.value })}
+            className="w-7 h-7 rounded cursor-pointer border border-border"
+            title="Global stamp color"
+          />
+        </div>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
+        {/* Add elements */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addFrame}>
+              <Circle className="w-3.5 h-3.5" /> Frame
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add frame ring</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addTextOnPath}>
+              <Type className="w-3.5 h-3.5" /> Text on Path
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add text along the stamp border</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addCenterText}>
+              <AlignCenter className="w-3.5 h-3.5" /> Center Text
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add text in the center</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm" variant="outline" className="h-7 gap-1 text-xs"
+              onClick={() => setIconPickerOpen(true)}
+            >
+              <Image className="w-3.5 h-3.5" /> Image
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add image / icon</TooltipContent>
+        </Tooltip>
       </div>
 
-      {/* Size */}
-      <div className="flex items-center gap-1.5">
-        <Label className="text-xs text-muted-foreground">Size:</Label>
-        <Input
-          type="number" min={10} max={150}
-          value={stamp.widthMm}
-          onChange={(e) => updateStamp(activeStampId, { widthMm: Number(e.target.value) })}
-          className="h-7 w-16 text-xs"
-        />
-        <span className="text-xs text-muted-foreground">mm</span>
-        {(stamp.shape === "oval" || stamp.shape === "rectangular") && (
-          <>
-            <span className="text-xs text-muted-foreground">×</span>
-            <Input
-              type="number" min={10} max={150}
-              value={stamp.heightMm}
-              onChange={(e) => updateStamp(activeStampId, { heightMm: Number(e.target.value) })}
-              className="h-7 w-16 text-xs"
-            />
-            <span className="text-xs text-muted-foreground">mm</span>
-          </>
-        )}
-      </div>
-
-      {/* Global color */}
-      <div className="flex items-center gap-1.5">
-        <Palette className="w-4 h-4 text-muted-foreground" />
-        <input
-          type="color" value={stamp.color}
-          onChange={(e) => updateStamp(activeStampId, { color: e.target.value })}
-          className="w-7 h-7 rounded cursor-pointer border border-border"
-          title="Global stamp color"
-        />
-      </div>
-
-      <div className="w-px h-5 bg-border mx-1" />
-
-      {/* Add elements */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addFrame}>
-            <Circle className="w-3.5 h-3.5" /> Frame
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Add frame ring</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addTextOnPath}>
-            <Type className="w-3.5 h-3.5" /> Text on Path
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Add text along the stamp border</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addCenterText}>
-            <AlignCenter className="w-3.5 h-3.5" /> Center Text
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Add text in the center</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {}}>
-            <Image className="w-3.5 h-3.5" /> Image
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Add image / icon</TooltipContent>
-      </Tooltip>
-    </div>
+      {/* Icon picker drawer — rendered outside the toolbar div */}
+      <IconPickerDrawer open={iconPickerOpen} onClose={() => setIconPickerOpen(false)} />
+    </>
   );
 }
-
