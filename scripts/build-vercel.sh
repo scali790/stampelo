@@ -1,7 +1,12 @@
 #!/bin/bash
 # Vercel Build Output API script
 # Source: src/server-entry.ts (maintainable)
-# Generated: .vercel/output/functions/api/server.func/index.js (gitignored)
+# Generated: .vercel/output/functions/api/server.func/index.mjs (gitignored)
+#
+# BUNDLING STRATEGY:
+# - All pure-JS packages are bundled into index.mjs (no node_modules needed at runtime)
+# - sharp is kept external (native binary) and its linux-x64 build is copied into .func/
+# - pg is bundled (uses pure-JS fallback, no native binding needed)
 set -e
 
 echo "[build] Building Vite frontend..."
@@ -21,22 +26,7 @@ npx esbuild src/server-entry.ts \
   --format=esm \
   --bundle \
   --external:sharp \
-  --external:@vercel/blob \
-  --external:pdf-lib \
-  --external:docx \
-  --external:pg \
-  --external:express \
-  --external:stripe \
-  --external:@auth/express \
-  --external:@auth/drizzle-adapter \
-  --external:drizzle-orm \
-  --external:@trpc/server \
-  --external:zod \
-  --external:superjson \
-  --external:nanoid \
-  --external:dotenv \
-  --external:@aws-sdk/client-s3 \
-  --external:@aws-sdk/s3-request-presigner \
+  --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);" \
   --outfile=.vercel/output/functions/api/server.func/index.mjs
 
 echo "[build] Writing .vc-config.json..."
@@ -69,35 +59,19 @@ echo "[build] Running bundle verification..."
 bash scripts/verify-bundle.sh .vercel/output/functions/api/server.func/index.mjs
 echo "[build] Done. Static: $(ls .vercel/output/static | wc -l) files. Function: $(wc -c < .vercel/output/functions/api/server.func/index.mjs) bytes"
 
-# ── ESM experiment: test-a (index.mjs) ───────────────────────────────────────
-mkdir -p .vercel/output/functions/test-a.func
-cat > .vercel/output/functions/test-a.func/index.mjs << 'HANDLEREOF'
-export default function handler(req, res) {
-  res.end(JSON.stringify({ status: "esm-ok", variant: "A-mjs", ts: Date.now() }));
-}
-HANDLEREOF
-cat > .vercel/output/functions/test-a.func/.vc-config.json << 'VCEOF'
-{"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true}
-VCEOF
-
-# ── ESM experiment: test-b (index.js + package.json type:module) ─────────────
-mkdir -p .vercel/output/functions/test-b.func
-cat > .vercel/output/functions/test-b.func/index.js << 'HANDLEREOF'
-export default function handler(req, res) {
-  res.end(JSON.stringify({ status: "esm-ok", variant: "B-js-pkgjson", ts: Date.now() }));
-}
-HANDLEREOF
-echo '{"type":"module"}' > .vercel/output/functions/test-b.func/package.json
-cat > .vercel/output/functions/test-b.func/.vc-config.json << 'VCEOF'
-{"runtime":"nodejs20.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":true}
-VCEOF
-
-# ── ESM experiment: test-c (imports express) ─────────────────────────────────
-mkdir -p .vercel/output/functions/test-c.func
-cat > .vercel/output/functions/test-c.func/index.mjs << 'HANDLEREOF'
-import express from "express";
-const app = express();
-app.get("/api/test-c", (req, res) => { res.json({ status: "express-ok", variant: "C-express", ts: Date.now() }); });
-export default app;
-HANDLEREOF
-echo '{"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true}' > .vercel/output/functions/test-c.func/.vc-config.json
+# ── Copy sharp native binary for Linux x64 (Vercel runtime) ──────────────────
+echo "[build] Copying sharp native binary for linux-x64..."
+SHARP_LINUX_DIR="node_modules/@img/sharp-linux-x64"
+if [ -d "$SHARP_LINUX_DIR" ]; then
+  mkdir -p .vercel/output/functions/api/server.func/node_modules/@img/sharp-linux-x64
+  cp -r "$SHARP_LINUX_DIR/." .vercel/output/functions/api/server.func/node_modules/@img/sharp-linux-x64/
+  echo "[build] sharp linux-x64 binary copied."
+else
+  echo "[build] WARNING: sharp linux-x64 binary not found at $SHARP_LINUX_DIR — PDF export may fail"
+fi
+# Also copy sharp itself (the JS wrapper that loads the binary)
+if [ -d "node_modules/sharp" ]; then
+  mkdir -p .vercel/output/functions/api/server.func/node_modules/sharp
+  cp -r "node_modules/sharp/." .vercel/output/functions/api/server.func/node_modules/sharp/
+  echo "[build] sharp JS wrapper copied."
+fi
