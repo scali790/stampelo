@@ -1,35 +1,47 @@
 # Database
 
-## Provider: Neon PostgreSQL
+## Provider
 
-Stampelo uses [Neon](https://neon.tech) serverless PostgreSQL.
+**Neon PostgreSQL** (serverless, `pg` driver). ORM: **Drizzle**.
 
-## Schema
+Connection string: `DATABASE_URL` environment variable.
 
-Tables: `users`, `accounts`, `sessions`, `verificationTokens` (Auth.js), `designs`, `orders`, `templates`, `icons`
+## Schema Tables
+
+| Table | Purpose |
+|---|---|
+| `users` | User accounts — `id`, `email`, `name`, `role` (`user`/`admin`), `emailVerified` |
+| `accounts` | OAuth provider accounts (Auth.js) |
+| `sessions` | Active sessions (Auth.js database sessions) |
+| `verificationTokens` | Magic link tokens (Auth.js) |
+| `designs` | Saved stamp designs — `stateJson` (full editor state), `shareToken`, `userId` |
+| `orders` | Purchase orders — `stripeSessionId`, `plan`, `status`, `downloadUrls`, `designId` |
+| `templates` | Template library — `name`, `category`, `shape`, `stateJson`, `thumbnailSvg`, `isActive`, `sortOrder` |
+| `icons` | Custom icon storage (currently unused; built-in icons served from `shared/iconData.ts`) |
 
 ## Migrations
 
 ```bash
-# Generate migration from schema changes
-pnpm drizzle-kit generate
-
-# Apply migrations
-pnpm db:migrate
+pnpm db:generate   # Generate SQL from schema changes
+pnpm db:migrate    # Apply pending migrations
 ```
 
-Migrations are stored in `drizzle/migrations/` and committed to Git.
+Migration files live in `drizzle/`. Never edit generated SQL files manually.
 
-## Seeding
+## Template Seeding
 
-```bash
-pnpm db:seed
-```
+Templates are seeded via `scripts/seed-templates.ts`. The seed script is idempotent (upsert by slug).
 
-Seeds 318+ templates across 14 categories and 4 shapes. Idempotent (safe to re-run).
+**Current active template count: 318** (verified against production database, 2026-08-07).
 
-## Backup Strategy
+## User Role Storage
 
-- Neon provides automatic daily backups with point-in-time recovery
-- For manual backup: `pg_dump $DATABASE_URL > backup.sql`
-- Templates can be re-seeded from `server/seed300Templates.ts` at any time
+The `users.role` column stores `"user"` or `"admin"`. Role is set server-side only — never from client input.
+
+## Idempotency
+
+Order idempotency is enforced via `orders.stripeSessionId` — the webhook handler checks for an existing fulfilled order before processing.
+
+## SSL
+
+Neon requires SSL. The connection string should include `?sslmode=require`.

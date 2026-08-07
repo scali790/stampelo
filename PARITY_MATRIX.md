@@ -1,8 +1,8 @@
-# Stampelo vs MyStampReady — Feature Parity Matrix
+# Parity Matrix (DEPRECATED)
 
-**Audit date:** 2026-08-07  
-**Reference:** https://mystampready.com/en/constructor/  
-**Status key:** ✅ IMPLEMENTED | ⚠️ PARTIAL | ❌ MISSING | N/A
+This file is superseded by `PARITY_MATRIX_FINAL.md`.
+
+See `PARITY_MATRIX_FINAL.md` for the current canonical feature parity matrix.
 
 ---
 

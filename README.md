@@ -1,68 +1,58 @@
-# Stampelo — Professional Online Stamp Maker
+# Stampelo — Online Stamp Maker
 
-**Production URL:** https://www.stampelo.com
-**Repository:** https://github.com/scali790/stampelo
-**Stack:** React 19 + Vite + Express + tRPC + Drizzle ORM + PostgreSQL + Auth.js + Vercel Blob + Stripe + Resend
+**Production:** https://www.stampelo.com
 
----
+Stampelo is a full-featured online stamp maker SaaS. Users design custom stamps (round, oval, rectangular, triangular) with a rich SVG editor, add text on paths, frames, and icons, then purchase and download in PNG, SVG, EPS, PDF, and DOCX formats.
 
-## Quick Start
+## Architecture Summary
 
-```bash
-# 1. Clone
-git clone https://github.com/scali790/stampelo.git
-cd stampelo
-
-# 2. Install
-pnpm install
-
-# 3. Configure environment
-cp .env.example .env.local
-# Edit .env.local with your credentials (see docs/ENVIRONMENT.md)
-
-# 4. Run database migrations
-pnpm db:migrate
-
-# 5. Seed templates and icons
-pnpm db:seed
-
-# 6. Start development server
-pnpm dev
+```
+Browser → Vercel CDN
+  → /api/*  → Express 4 + tRPC 11 (Vercel Node Function)
+               → Neon PostgreSQL (Drizzle ORM)
+               → Vercel Blob (file storage)
+               → Stripe (payments)
+               → Resend (email)
+  → /*      → Vite SPA (React 19 + Tailwind 4)
 ```
 
-## Available Scripts
+Auth: Auth.js (`@auth/express`) — Resend magic link + Google OAuth
 
-| Command | Description |
+## Local Setup
+
+```bash
+git clone https://github.com/scali790/stampelo
+cd stampelo
+pnpm install
+cp .env.example .env.local   # Edit with your credentials (see docs/ENVIRONMENT.md)
+pnpm db:migrate
+pnpm dev                     # http://localhost:3000
+```
+
+## Commands
+
+| Command | Purpose |
 |---|---|
-| `pnpm dev` | Start development server (localhost:3000) |
-| `pnpm build` | Build for production |
-| `pnpm start` | Start production server |
-| `pnpm test` | Run unit/integration tests |
-| `pnpm test:e2e` | Run Playwright cross-browser tests |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm lint` | ESLint |
-| `pnpm db:migrate` | Run database migrations |
-| `pnpm db:seed` | Seed templates and icons |
+| `pnpm dev` | Start dev server (port 3000) |
+| `pnpm build` | Production build (Vercel Build Output API) |
+| `pnpm test` | Run 84 Vitest tests |
+| `pnpm typecheck` | TypeScript check |
+| `pnpm db:generate` | Generate migration SQL |
+| `pnpm db:migrate` | Apply migrations |
 
-## Architecture
+## Deployment
 
-- **Frontend:** React 19 + Vite + Tailwind CSS 4 + shadcn/ui
-- **Backend:** Express 4 + tRPC 11 (type-safe API)
-- **Database:** Neon PostgreSQL + Drizzle ORM
-- **Auth:** Auth.js v5 (email magic link + Google OAuth)
-- **Storage:** Vercel Blob
-- **Payments:** Stripe (CHF)
-- **Email:** Resend
-- **Hosting:** Vercel
-- **CI:** GitHub Actions
+Every push to `main` triggers an automatic Vercel production deployment. See `docs/DEPLOYMENT.md` for full details.
 
 ## Documentation
 
-See the `docs/` directory for detailed documentation on each subsystem.
+Full documentation is in `docs/`. Start with `docs/README.md` for the index.
 
-## Manus Independence
-
-This application is **completely independent of Manus infrastructure**.
-See `docs/MANUS_DECOMMISSION.md` for the full decommission audit.
-
-**MANUS PRODUCTION DEPENDENCIES: 0**
+| Quick links | |
+|---|---|
+| Architecture | `docs/ARCHITECTURE.md` |
+| Environment variables | `docs/ENVIRONMENT.md` |
+| Deployment | `docs/DEPLOYMENT.md` |
+| Authentication | `docs/AUTH.md` |
+| Stripe payments | `docs/STRIPE.md` |
+| Open items / backlog | `docs/OPEN_ITEMS.md` |

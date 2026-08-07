@@ -1,18 +1,31 @@
-# Email
+# Email (Resend)
 
-## Provider: Resend
+## Provider
 
-Stampelo uses [Resend](https://resend.com) for all transactional email.
+Stampelo uses **Resend** for all transactional email. The verified sending domain is `stampelo.com`.
 
-## Sender Domain
+## Sender Address
 
-`stampelo.com` must be verified in Resend.
+`noreply@stampelo.com` (configured via `EMAIL_FROM` env var).
 
-After adding `stampelo.com` in Resend Dashboard → Domains, Resend will show you the exact DNS records.
+## Email Types
 
-**Get the exact values from Resend Dashboard → Domains → stampelo.com → DNS Records.**
+| Email | Trigger | Content |
+|---|---|---|
+| Magic link | User requests sign-in via email | One-time sign-in link |
+| Fulfillment | Stripe `checkout.session.completed` webhook | Download link for purchased stamp |
 
-## Email Flows
+## Required Environment Variables
 
-1. **Magic link sign-in** — Auth.js sends via Resend automatically
-2. **Order fulfillment** — Download links sent after Stripe webhook confirmation
+| Variable | Required | Purpose |
+|---|---|---|
+| `RESEND_API_KEY` | Yes | Resend API key — **Sending access only**, scoped to `stampelo.com` |
+| `EMAIL_FROM` | No | Sender address (default: `noreply@stampelo.com`) |
+
+## Domain Verification
+
+The `stampelo.com` domain must be verified in the Resend dashboard. The API key must be created with the domain restriction set to `stampelo.com`. A key scoped to a different domain (e.g., `stampelo.ch`) will return a 403 error.
+
+## Least Privilege
+
+The Resend API key should use **Sending access only** — not full access.

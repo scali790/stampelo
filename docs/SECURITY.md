@@ -2,29 +2,31 @@
 
 ## Authentication
 
-- Auth.js v5 with database sessions (revocable)
-- CSRF protection built into Auth.js
-- Secure session cookies (httpOnly, sameSite=lax, secure in production)
-
-## Stripe Webhooks
-
-- All webhooks verified with `stripe.webhooks.constructEvent()` before processing
-- No test bypass in production code (previously removed)
-- Idempotent fulfillment (checks `order.status` before processing)
+Auth.js with database sessions. Sessions are stored server-side in PostgreSQL and can be revoked. Magic link tokens are single-use and expire after a short window.
 
 ## Admin Authorization
 
-- Admin role stored in PostgreSQL `users.role` column
-- `ADMIN_EMAIL` env var auto-promotes on first sign-in
-- All admin procedures check `ctx.user.role === "admin"` server-side
-- No client-side role claims accepted
+Admin role is stored in `users.role` and verified server-side on every admin procedure call. The role is never derived from client-supplied data or session tokens alone.
 
-## SVG Upload Sanitisation
+## Stripe Webhook Verification
 
-- Custom SVG uploads limited to 50 KB
-- Client-side sanitisation removes `<script>`, event handlers, and external references
+Every incoming webhook request is verified using `stripe.webhooks.constructEvent()` with `STRIPE_WEBHOOK_SECRET`. Requests with invalid signatures are rejected with HTTP 400 before any processing.
 
-## Download URLs
+## SVG Sanitization
 
-- Export files stored in Vercel Blob with public URLs
-- URLs sent by email and stored in `orders.downloadUrls`
+Custom SVG uploads are sanitized server-side. Sanitization removes `<script>` tags, event handlers (`on*` attributes), and external resource references. Maximum upload size: 50 KB.
+
+## Environment Variable Security
+
+All secrets are stored in Vercel environment variables and never committed to the repository. `.env.local` is gitignored.
+
+## Source Code Exposure Prevention
+
+The Vercel Build Output API architecture ensures:
+- The server bundle (`index.mjs`) is deployed as a Vercel Function, not a static file
+- No TypeScript source files, source maps, or backend source code are publicly accessible
+- `scripts/verify-bundle.sh` prevents internal project imports from remaining in the bundle
+
+## Historical Issue: Bundle Exposure
+
+During the Manus to Vercel migration, an intermediate deployment configuration caused the raw server bundle to be served as the homepage. This was resolved by switching to the Build Output API with explicit routing rules. The current architecture prevents recurrence.
