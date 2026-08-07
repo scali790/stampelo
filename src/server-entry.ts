@@ -31,6 +31,7 @@ app.get("/api/health", (_req, res) => {
       AUTH_SECRET: !!process.env.AUTH_SECRET,
       STRIPE_SECRET_KEY: !!process.env.STRIPE_SECRET_KEY,
       RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+      EMAIL_FROM: process.env.EMAIL_FROM || "NOT_SET",
     },
   });
 });
