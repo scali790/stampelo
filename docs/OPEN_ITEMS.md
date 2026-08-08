@@ -11,7 +11,7 @@
 
 ## P1 — HIGH PRIORITY
 
-- [ ] **Export verification on production** — PNG/SVG/PDF/DOCX generation not verified on current Vercel build. The `sharp` native binary packaging may have issues on the current deployment. EPS is not a customer export and does not require verification here.
+- [x] **Export verification on production** — RESOLVED 2026-08-08. Sharp replaced with @resvg/resvg-wasm. PNG/PDF export verified working. EPS not a customer export.
 - [ ] **PDF editor production smoke** — Upload → merge → download not verified on current Vercel production.
 - [x] **Editor viewport UX — stamp plate fit** — RESOLVED 2026-08-08. EditorStage (max 600×600px) with auto-fit zoom. Stamp fills ~75% of stage. Cropped viewBox prevents overflow. Grid behind stamp. Physical dimensions unchanged. Commits: 8462fee, 2e1e00f, caaa61c, ccd868f.
 - [ ] **Properties panel bug** — Properties panel may still show "Select an element" when an element is selected. Possible event propagation issue between canvas click (deselect) and layer panel click (select). Not yet verified on current production build.
@@ -51,4 +51,6 @@
 - [x] **PDF editor no-stamp gate** — RESOLVED 2026-08-08. Users visiting /pdf-editor without a stamp now see a clear gate with CTAs. Commit: 1a39c30.
 - [x] **PDF editor rotation handle feedback loop** — RESOLVED 2026-08-08. Rotation was computing an absolute angle from stamp center, creating a feedback loop as the stamp rotated. Fixed by storing initial angle at drag start and computing delta. Commit: 05252ae.
 - [x] **PDF editor export Sharp @img/colour missing** — RESOLVED 2026-08-08. Build script only copied @img/sharp-linux-x64 but not @img/colour (pure JS, required by sharp/dist/colour.mjs). Fixed by copying entire node_modules/@img/ directory and detect-libc. Commit: fc69a75.
+- [x] **Server cold-start crash (createRequire duplicate)** — RESOLVED 2026-08-08. Sharp's ESM module declared `createRequire` at module scope, conflicting with the esbuild `--banner:js` injection. Fixed by replacing Sharp entirely with `@resvg/resvg-wasm` in both `exportService.ts` and `pdfStampService.ts`. Commit: `52159be`.
+- [x] **PDF stamp export size mismatch** — RESOLVED 2026-08-08. Server was computing stamp size from physical DPI × scale (2.7× too large). Fixed by sending `stampSizePct` from client (stamp display width as % of canvas width) and using it directly as a fraction of PDF page width. Commit: `a960b07`.
 

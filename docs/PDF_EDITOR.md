@@ -87,8 +87,8 @@ Position is stored as `x/y` percentage of page width/height.
 ### `server/pdfStampService.ts`
 
 1. Rasterises the stamp SVG to PNG at 300 DPI using `sharp`
-   - Physical stamp size: `stampWidthMm × (300/25.4)` pixels
-   - Scaled by `placement.scale`
+   - Stamp size: `(stampSizePct / 100) × pageWidthPt` (PDF points), matching editor display
+   - Rasterised at 300 DPI for quality: `stampPx = (stampWidthPt / 72) × 300`
 2. Embeds the PNG onto the specified pages using `pdf-lib`
    - Position: `xPct/yPct` of page dimensions, centered on the stamp
    - Rotation applied via `pdf-lib` transform
@@ -118,4 +118,21 @@ Multi-page PDFs are supported. Page navigation (Previous / Next) re-renders the 
 | Stamp rasterisation | `sharp` native binary required. All `@img/*` packages and `detect-libc` are copied into the Vercel function by the build script (commit `fc69a75`). |
 | No authentication | `uploadPdf` and `stampPdf` are `publicProcedure` — any user can upload and stamp PDFs without authentication |
 | No cleanup | Uploaded and merged PDFs are not automatically deleted from Vercel Blob |
+| PNG rasterisation | Uses `@resvg/resvg-wasm` (pure WebAssembly, no native binaries). Sharp was removed in commit `52159be` due to cold-start crashes from missing native deps (`@img/colour`, `semver`, `detect-libc`). |
 | Position accuracy | Stamp position is stored as percentage of page dimensions. The visual overlay uses the pdfjs-rendered canvas (scale 1.5); the server merge uses `pdf-lib` page dimensions. These may differ slightly for non-standard page sizes. |
+
+## Build History / Known Issues
+
+### 2026-08-08: Sharp replaced with @resvg/resvg-wasm
+
+Sharp was the original PNG rasteriser for both `exportService.ts` and `pdfStampService.ts`. It was removed because:
+
+1. Sharp's ESM entry (`dist/sharp.mjs`) declares `import { createRequire } from "node:module"` at module scope.
+2. The esbuild `--banner:js` injection also declared `createRequire`, causing `SyntaxError: Identifier 'createRequire' has already been declared` on every cold start.
+3. Even after externalising Sharp, its transitive deps (`@img/colour`, `@img/sharp-linux-x64`, `semver`, `detect-libc`) were not available in the Vercel function directory.
+
+`@resvg/resvg-wasm` is a pure WebAssembly SVG rasteriser with no native binary dependencies. The WASM binary is copied once to the function directory by `scripts/build-vercel.sh`.
+
+### 2026-08-08: stampSizePct replaces scale in placement
+
+The original `placement.scale` multiplied the physical DPI stamp size, causing a 2.7× size mismatch between the editor preview and the exported PDF. Replaced with `stampSizePct` (stamp display width as % of canvas width), which the server uses directly as a fraction of the PDF page width.
