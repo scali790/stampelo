@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { useEditorStore } from "./store";
 import { Search } from "lucide-react";
 import { normalizeTemplateState } from "../../../shared/templateStateNormalization";
+import { getCuratedTemplateState } from "../../../shared/templateCurationBatch1";
 import { renderStampSvg, CANVAS_SIZE, CANVAS_CENTER } from "./svgUtils";
 import type { Stamp } from "./types";
 
@@ -56,9 +57,6 @@ function normalizeSvgForThumbnail(svg: string, bounds?: PreviewBounds) {
   });
 }
 
-// Generate the canonical preview from editable stateJson. Legacy seeded states
-// are normalized first because the original catalogue used camelCase element
-// type names and omitted heightMm on every stamp.
 function TemplateSvgPreview({ stateJson, fallbackSvg }: { stateJson: unknown; fallbackSvg?: string | null }) {
   try {
     const state = normalizeTemplateState(stateJson);
@@ -112,7 +110,8 @@ export function TemplateDrawer({ open, onClose }: Props) {
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
-      loadState(normalizeTemplateState(template.stateJson));
+      const effectiveState = getCuratedTemplateState(template.slug, template.stateJson);
+      loadState(normalizeTemplateState(effectiveState));
     }
     onClose();
   };
@@ -187,17 +186,20 @@ export function TemplateDrawer({ open, onClose }: Props) {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 p-3">
-                {templates.map((t) => (
-                  <div
-                    key={t.id}
-                    className="border rounded-lg p-2 cursor-pointer hover:border-primary hover:bg-accent/30 transition-all"
-                    onClick={() => handleLoad(t)}
-                  >
-                    <TemplateSvgPreview stateJson={t.stateJson} fallbackSvg={t.thumbnailSvg} />
-                    <p className="text-xs font-medium truncate">{t.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{t.category}</p>
-                  </div>
-                ))}
+                {templates.map((t) => {
+                  const effectiveState = getCuratedTemplateState(t.slug, t.stateJson);
+                  return (
+                    <div
+                      key={t.id}
+                      className="border rounded-lg p-2 cursor-pointer hover:border-primary hover:bg-accent/30 transition-all"
+                      onClick={() => handleLoad(t)}
+                    >
+                      <TemplateSvgPreview stateJson={effectiveState} fallbackSvg={t.thumbnailSvg} />
+                      <p className="text-xs font-medium truncate">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.category}</p>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
