@@ -328,40 +328,39 @@ export const useEditorStore = create<EditorStore>()(
         activeStampId: state.activeStampId,
         locale: state.locale,
       }),
-      // ─── Migration: replace the old broken default stamp ─────────────────
-      // Version 0 (no version key) = old default: single stamp with
-      //   centerText "STAMP" and one arc "YOUR COMPANY NAME".
-      // Version 1 = canonical starter stamp introduced 2026-08-08.
+      // ─── Migration history ────────────────────────────────────────────────
+      // v0 (no key) : old broken default — centerText "STAMP", arc "YOUR COMPANY NAME"
+      // v1 (2026-08-08a): canonical texts correct but arc radius=69% (too far inside)
+      // v2 (2026-08-08b): correct visual geometry — arc radius=82%, fontSize=7
       //
-      // On upgrade from v0 → v1 we check whether the persisted state looks
-      // like the old broken default (1 stamp, centerText "STAMP", no bottom
-      // arc). If so, we replace it with the canonical starter stamp so that
-      // existing users see the professional first-load experience.
-      // Users who have already customised their stamp (different text, more
-      // elements, etc.) are left untouched.
-      version: 1,
+      // Migration replaces the stamp ONLY when it still looks like the unmodified
+      // default (1 stamp, centerText "YOUR STAMP" or "STAMP"). Users who have
+      // already customised their stamp are left completely untouched.
+      version: 2,
       migrate: (persistedState: unknown, fromVersion: number) => {
-        if (fromVersion < 1) {
-          const s = persistedState as any;
-          const stamps: any[] = s?.stamps ?? [];
-          // Detect old broken default: exactly 1 stamp whose only center-text
-          // element still reads "STAMP" (the old placeholder).
-          const isOldDefault =
-            stamps.length === 1 &&
-            stamps[0]?.elements?.some(
-              (el: any) =>
-                (el.type === "center-text" || el.type === "centerText") &&
-                el.text === "STAMP"
-            );
-          if (isOldDefault) {
-            const fresh = createDefaultStamp("round");
-            return {
-              ...s,
-              stamps: [fresh],
-              activeStampId: fresh.id,
-            };
-          }
+        const s = persistedState as any;
+        const stamps: any[] = s?.stamps ?? [];
+
+        const isUnmodifiedDefault = (centerText: string) =>
+          stamps.length === 1 &&
+          stamps[0]?.elements?.some(
+            (el: any) =>
+              (el.type === "center-text" || el.type === "centerText") &&
+              el.text === centerText
+          );
+
+        if (fromVersion < 1 && isUnmodifiedDefault("STAMP")) {
+          // v0 → v2: replace old broken placeholder
+          const fresh = createDefaultStamp("round");
+          return { ...s, stamps: [fresh], activeStampId: fresh.id };
         }
+
+        if (fromVersion < 2 && isUnmodifiedDefault("YOUR STAMP")) {
+          // v1 → v2: replace canonical stamp that had wrong arc geometry (radius=69%)
+          const fresh = createDefaultStamp("round");
+          return { ...s, stamps: [fresh], activeStampId: fresh.id };
+        }
+
         return persistedState;
       },
     }
