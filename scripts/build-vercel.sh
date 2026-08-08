@@ -14,6 +14,7 @@ npx vite build
 
 echo "[build] Generating route-aware SEO HTML..."
 node scripts/build-seo-pages.mjs
+node scripts/verify-seo-output.mjs
 
 echo "[build] Creating .vercel/output structure..."
 rm -rf .vercel/output
