@@ -13,7 +13,7 @@
 
 - [ ] **Export verification on production** — PNG/SVG/PDF/DOCX generation not verified on current Vercel build. The `sharp` native binary packaging may have issues on the current deployment. EPS is not a customer export and does not require verification here.
 - [ ] **PDF editor production smoke** — Upload → merge → download not verified on current Vercel production.
-- [ ] **Editor viewport UX — stamp plate fit** — The editor workspace has been updated (commit `8462fee`) but the fix has not yet been verified in production. The intended behavior is: stamp plate fills ~75–82% of the central workspace, no large white generic page/canvas, grid behind the stamp, physical dimensions unchanged. Verify after deployment that a 38mm round stamp appears large and centered with no scrollbars.
+- [x] **Editor viewport UX — stamp plate fit** — RESOLVED 2026-08-08. EditorStage (max 600×600px) with auto-fit zoom. Stamp fills ~75% of stage. Cropped viewBox prevents overflow. Grid behind stamp. Physical dimensions unchanged. Commits: 8462fee, 2e1e00f, caaa61c, ccd868f.
 - [ ] **Properties panel bug** — Properties panel may still show "Select an element" when an element is selected. Possible event propagation issue between canvas click (deselect) and layer panel click (select). Not yet verified on current production build.
 - [ ] **EPS plan decision** — `generateEps()` exists in `server/exportService.ts` but is not wired into any plan. Decision required: (a) add EPS to VIP plan, (b) add as a separate add-on, or (c) remove the generator. Until decided, EPS must not be listed as a customer-facing export in any documentation or marketing material.
 
@@ -43,3 +43,9 @@
 - [x] **Resend magic link email delivery** — New Resend API key created with Sending access scoped to `stampelo.com`. Magic link emails now delivered successfully.
 - [x] **Template previews showing "No preview"** — TemplateDrawer updated to generate SVG previews client-side from `stateJson` using `renderStampSvg()`. All 318 templates now show live previews.
 - [x] **textPath defs clipping** — `<path>` definitions for text-on-path are now hoisted to the top-level `<defs>` section, outside the clip group.
+- [x] **Arc text clipping (final glyph truncated)** — RESOLVED 2026-08-08. Two root causes: (1) text-on-path was inside the clip-path group; (2) text overflowed the arc. Fix: text-on-path rendered outside clip group;  auto-reduces fontSize/letterSpacing to fit available arc length. Commit: 3033184.
+- [x] **Image button non-functional** — RESOLVED 2026-08-08. Image button had empty . Now opens . Commit: 46dd30b.
+- [x] **NaN in stamp dimensions** — RESOLVED 2026-08-08. Size inputs now guard against NaN — store only updated when value is valid number in [10, 150]. Commit: 46dd30b.
+- [x] **PDF editor export 500 error** — RESOLVED 2026-08-08.  was returning a relative path instead of a full URL. Fixed:  uses  for actual URL;  returns full blob URL;  uses it directly. Commit: bb63921.
+- [x] **PDF editor stamp display too small** — RESOLVED 2026-08-08. Stamp overlay now uses  with cropped viewBox, proportional to page width. Commit: bb63921.
+- [x] **PDF editor no-stamp gate** — RESOLVED 2026-08-08. Users visiting /pdf-editor without a stamp now see a clear gate with CTAs. Commit: 1a39c30.
