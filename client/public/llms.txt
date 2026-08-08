@@ -1,0 +1,22 @@
+# Stampelo
+
+Stampelo is an online digital stamp and seal creator. It provides a browser-based editor with 300+ customizable templates, multiple stamp shapes, custom icon/SVG uploads, and export in PNG, SVG, EPS, PDF, and DOCX with transparent backgrounds, plus a built-in tool to apply stamps directly to PDF documents.
+
+Canonical site: https://www.stampelo.com/
+
+## Core product
+- Stamp editor: https://www.stampelo.com/editor
+- PDF Stamp Editor: https://www.stampelo.com/pdf-editor
+- Pricing: https://www.stampelo.com/pricing
+- Templates: https://www.stampelo.com/templates
+- About: https://www.stampelo.com/about
+
+## Guides
+- What is a digital stamp: https://www.stampelo.com/guides/what-is-a-digital-stamp
+- How to add a stamp to a PDF: https://www.stampelo.com/guides/how-to-add-a-stamp-to-a-pdf
+- File formats: https://www.stampelo.com/guides/png-vs-svg-vs-pdf-stamp
+- Digital vs rubber stamp: https://www.stampelo.com/guides/digital-vs-rubber-stamp
+- Transparent PNG stamp: https://www.stampelo.com/guides/transparent-png-stamp
+
+## Important limitation
+A visual digital stamp is not automatically equivalent to an electronic signature, digital certificate, qualified electronic signature, notarisation or legal authority. Requirements depend on the document, organisation and jurisdiction.
