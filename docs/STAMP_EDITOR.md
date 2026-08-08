@@ -122,13 +122,42 @@ Hard safety conditions prevent overflow: `displayW ≤ stageW × 0.9`, `displayH
 
 **Zoom model:** 100% = Fit (stamp fills ~75% of stage). Manual zoom steps: 25% increments, range 25%–400%.
 
-### Default stamp geometry (38mm round)
+### Canonical Default Starter Stamp (38mm round)
+
+The editor shows a **canonical starter stamp** to every new user on first load.
+It is the product's first impression and must be professional, clean, and technically correct.
+
+**Design principles:**
+- Professional, trustworthy appearance — no debug/test artefacts
+- All text within the safe inner area (no clipping, no frame collision)
+- Balanced typography: top arc + centre text + bottom arc (inverse)
+- Effects off by default (no shabby, no metallic)
+- Geometry computed via `getStampSafeGeometry` / `fitArcTextRadius` / `fitCenterTextFontSize`
+
+**Canonical content:**
+
+| Layer | Text | Role |
+|---|---|---|
+| Top arc (`inverse=false`) | `STAMPELO.COM` | Brand / demo context |
+| Centre text | `YOUR STAMP` | Personalisation placeholder |
+| Bottom arc (`inverse=true`) | `CREATE IN SECONDS` | Product promise |
+
+**Geometry (38mm round, computed values):**
 
 | Element | Value | Rationale |
 |---|---|---|
-| Text-on-path radius | 67% of maxR | Glyph top (23.08) safely below safeInnerR (24.58) |
-| Text-on-path fontSize | 10 | Fits within safe arc; auto-fit reduces if text is long |
-| Center text fontSize | 13 | Auto-fit for "STAMP" (width 37.7 vs inner diameter 49.2) |
+| Frame radius | 95% of maxR | Standard professional border |
+| Frame stroke width | 3 px | Clean, visible border |
+| Arc text radius | 69% of maxR (20.84 SVG units) | Glyph top (23.08) safely below safeInnerR (24.58) |
+| Arc font size (stored) | 8 pt | Readable; auto-fit reduces letter-spacing or size if text overflows |
+| Centre text font size | 6 pt | Auto-fit for "YOUR STAMP" (10 chars, width 34.8 ≤ 40.3 available) |
+
+**First-load vs. returning-user behaviour:**
+
+The store uses Zustand `persist` (localStorage key `stampelo-editor`):
+- **New users** (no persisted key) → `initialState` loads the canonical starter stamp
+- **Returning users** (key present) → persisted stamps are rehydrated (no data loss)
+- `resetEditor()` always resets to a fresh canonical starter stamp
 
 ### Physical size label
 

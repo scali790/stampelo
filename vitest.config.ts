@@ -15,5 +15,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    // Allow importing pure-TS client modules (no DOM) in server tests
+    // e.g. defaultStamp.test.ts imports from @/editor/svgUtils and @/editor/store
   },
 });
