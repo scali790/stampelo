@@ -75,3 +75,24 @@ if [ -d "node_modules/sharp" ]; then
   cp -r "node_modules/sharp/." .vercel/output/functions/api/server.func/node_modules/sharp/
   echo "[build] sharp JS wrapper copied."
 fi
+# Copy ALL @img/* packages (sharp depends on @img/colour and others at runtime)
+if [ -d "node_modules/@img" ]; then
+  mkdir -p .vercel/output/functions/api/server.func/node_modules/@img
+  for pkg in node_modules/@img/*/; do
+    pkgname=$(basename "$pkg")
+    dest=".vercel/output/functions/api/server.func/node_modules/@img/$pkgname"
+    if [ ! -d "$dest" ]; then
+      cp -r "$pkg" "$dest"
+      echo "[build] copied @img/$pkgname"
+    fi
+  done
+  echo "[build] all @img/* packages copied."
+else
+  echo "[build] WARNING: node_modules/@img not found — Sharp runtime deps may be missing"
+fi
+# Copy detect-libc (required by sharp for platform detection)
+if [ -d "node_modules/detect-libc" ]; then
+  mkdir -p .vercel/output/functions/api/server.func/node_modules/detect-libc
+  cp -r "node_modules/detect-libc/." .vercel/output/functions/api/server.func/node_modules/detect-libc/
+  echo "[build] detect-libc copied."
+fi
