@@ -13,6 +13,10 @@ import type {
 } from "./types";
 import { getStampSafeGeometry, fitCenterTextFontSize, fitArcTextRadius } from "./svgUtils";
 
+const STARTER_TOP_TEXT = "STAMPELO.COM";
+const STARTER_CENTER_TEXT = "YOUR STAMP";
+const STARTER_BOTTOM_TEXT = "CREATE IN SECONDS";
+
 // ─── Canonical Default Starter Stamp ─────────────────────────────────────────
 //
 // This factory produces the canonical first-load starter stamp shown to every
@@ -41,20 +45,17 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
 
   const widthMm = shape === "rectangular" ? 55 : 38;
   const heightMm = shape === "rectangular" ? 25 : 38;
+  const geometry = getStampSafeGeometry(widthMm);
 
-  // Arc geometry: radius=82% of maxR places arc text visually close to the frame,
-  // matching the template library standard (templates use 82-83%).
-  // fontSize=7 fits STAMPELO.COM (12 chars) at ls=100 and CREATE IN SECONDS (17 chars)
-  // at auto-fitted ls≈70 — both well within the available arc length.
-  // Note: at radius=82% the glyph tops sit just above safeInnerR; this is intentional
-  // and consistent with the template library. The frame stroke visually covers the gap.
-  const arcFontSize = 7;
-  const arcRadiusPct = 82;
+  const arcFontSize = 6;
+  const { radiusPct: arcRadiusPct } = fitArcTextRadius(
+    arcFontSize,
+    geometry.safeInnerR,
+    geometry.maxR
+  );
 
-  // Center text: auto-fit to 10 chars "YOUR STAMP", capped at 7 pt to leave
-  // clear vertical breathing room between the two arcs.
-  const centerTextContent = "YOUR STAMP";
-  const centerFontSize = 6;
+  const centerTextContent = STARTER_CENTER_TEXT;
+  const centerFontSize = fitCenterTextFontSize(centerTextContent, geometry.safeInnerR, 7);
 
   const frame: FrameElement = {
     id: frameId,
@@ -72,7 +73,7 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     type: "text-on-path",
     color: "#1a3a6b",
     visible: true,
-    text: "STAMPELO.COM",
+    text: STARTER_TOP_TEXT,
     font: "Arial",
     fontSize: arcFontSize,
     bold: true,
@@ -105,7 +106,7 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     type: "text-on-path",
     color: "#1a3a6b",
     visible: true,
-    text: "CREATE IN SECONDS",
+    text: STARTER_BOTTOM_TEXT,
     font: "Arial",
     fontSize: arcFontSize,
     bold: true,
@@ -180,6 +181,35 @@ const initialState: EditorState = {
   selectedElementId: null,
   locale: "en",
 };
+
+function looksLikeHistoricalStarterStamp(stamp: any): boolean {
+  if (!stamp || stamp.shape !== "round" || stamp.widthMm !== 38) return false;
+  if (!Array.isArray(stamp.elements) || stamp.elements.length < 3 || stamp.elements.length > 4) return false;
+
+  const frame = stamp.elements.find((el: any) => el?.type === "frame");
+  const centerText = stamp.elements.find((el: any) => el?.type === "center-text" || el?.type === "centerText");
+  const arcs = stamp.elements.filter((el: any) => el?.type === "text-on-path" || el?.type === "textOnPath");
+  if (!frame || !centerText || arcs.length < 1 || arcs.length > 2) return false;
+
+  const texts = new Set(arcs.map((el: any) => el?.text));
+  const hasCanonicalTexts =
+    texts.has(STARTER_TOP_TEXT) &&
+    texts.has(STARTER_BOTTOM_TEXT) &&
+    centerText.text === STARTER_CENTER_TEXT &&
+    arcs.length === 2;
+  const hasLegacyTexts =
+    centerText.text === "STAMP" &&
+    texts.has("YOUR COMPANY NAME");
+
+  if (!hasCanonicalTexts && !hasLegacyTexts) return false;
+
+  return arcs.every((el: any) =>
+    el?.align === "center" &&
+    el?.startAngle === 0 &&
+    typeof el?.radius === "number" &&
+    typeof el?.fontSize === "number"
+  );
+}
 
 export const useEditorStore = create<EditorStore>()(
   persist(
@@ -329,34 +359,19 @@ export const useEditorStore = create<EditorStore>()(
         locale: state.locale,
       }),
       // ─── Migration history ────────────────────────────────────────────────
-      // v0 (no key) : old broken default — centerText "STAMP", arc "YOUR COMPANY NAME"
-      // v1 (2026-08-08a): canonical texts correct but arc radius=69% (too far inside)
-      // v2 (2026-08-08b): correct visual geometry — arc radius=82%, fontSize=7
+      // v0 (pre-2026-08-08): old broken default — centerText "STAMP", arc "YOUR COMPANY NAME"
+      // v1 (2026-08-08a): starter texts updated but full-circle path semantics still wrong
+      // v2 (2026-08-08b): same renderer issue plus frame-collision-prone radius=82
+      // v3 (2026-08-08c): semantic top/bottom partial arcs + safe baseline radius
       //
-      // Migration replaces the stamp ONLY when it still looks like the unmodified
-      // default (1 stamp, centerText "YOUR STAMP" or "STAMP"). Users who have
-      // already customised their stamp are left completely untouched.
-      version: 2,
+      // Migration replaces the stamp ONLY when it still looks like the untouched
+      // historical starter. User-customized stamps are not overwritten.
+      version: 3,
       migrate: (persistedState: unknown, fromVersion: number) => {
         const s = persistedState as any;
         const stamps: any[] = s?.stamps ?? [];
 
-        const isUnmodifiedDefault = (centerText: string) =>
-          stamps.length === 1 &&
-          stamps[0]?.elements?.some(
-            (el: any) =>
-              (el.type === "center-text" || el.type === "centerText") &&
-              el.text === centerText
-          );
-
-        if (fromVersion < 1 && isUnmodifiedDefault("STAMP")) {
-          // v0 → v2: replace old broken placeholder
-          const fresh = createDefaultStamp("round");
-          return { ...s, stamps: [fresh], activeStampId: fresh.id };
-        }
-
-        if (fromVersion < 2 && isUnmodifiedDefault("YOUR STAMP")) {
-          // v1 → v2: replace canonical stamp that had wrong arc geometry (radius=69%)
+        if (stamps.length === 1 && fromVersion < 3 && looksLikeHistoricalStarterStamp(stamps[0])) {
           const fresh = createDefaultStamp("round");
           return { ...s, stamps: [fresh], activeStampId: fresh.id };
         }

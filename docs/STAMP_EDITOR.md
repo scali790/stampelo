@@ -60,30 +60,49 @@ Elements are split into two render groups:
 
 `textPath` `<path>` definitions are hoisted to the top-level `<defs>` section (never inside the clip group).
 
+### Round text-path geometry (`getTextPathGeometry`)
+
+Round `text-on-path` elements use an explicit semantic arc, not a full circle.
+
+Coordinate convention:
+
+- `0°` = `12 o'clock`
+- `90°` = `3 o'clock`
+- `180°` = `6 o'clock`
+- `270°` = `9 o'clock`
+- positive rotation = clockwise
+
+For round/oval arc text, the renderer builds a single open arc with a fixed sweep of `160°`:
+
+| Arc role | Center angle when `startAngle = 0` | Path start | Path end | Sweep flag | Read order |
+|---|---:|---:|---:|---:|---|
+| Top (`inverse = false`) | `0°` | `280°` | `80°` | `1` | Left-to-right across the upper arc |
+| Bottom (`inverse = true`) | `180°` | `260°` | `100°` | `0` | Left-to-right across the lower arc |
+
+`startAngle` rotates the semantic arc center around the plate. It no longer means "where a full-circle path starts"; it means "rotate the top/bottom arc from its canonical center".
+
+This model guarantees:
+
+- top text is centered on `12 o'clock`
+- bottom text is centered on `6 o'clock`
+- both arcs stay on their intended half of the plate
+- preview/export/editor all share the same path semantics
+
 ### Arc-length auto-fit (`fitArcText`)
 
-Every `text-on-path` element is auto-fitted before rendering to ensure the complete text string is visible:
+Every `text-on-path` element is auto-fitted against the usable portion of its semantic arc:
 
 ```
-availableArc = π × arcRadius × 0.78   (78% of top semicircle)
+availableArc = pathLength × 0.92
 requiredArc  = numChars × fontSize × 0.58 + letterSpacingExtra
 ```
 
-Fit strategy (in order):
+Fit strategy:
 1. Try requested `fontSize` + `letterSpacing`
-2. Reduce `letterSpacing` down to 70 (30% compression) while keeping `fontSize`
-3. Reduce `fontSize` (keeping `letterSpacing = 70`), minimum `fontSize = 6`
+2. Reduce `letterSpacing` down to `70`
+3. Reduce `fontSize` if needed, minimum `6`
 
-This guarantees the final glyph is never clipped or wrapped to the bottom arc.
-
-**Verification (38mm round stamp, arcR = 20.28 SVG units):**
-
-| Text | Fitted fontSize | Fitted letterSpacing | Fits arc |
-|---|---|---|---|
-| YOUR COMPANY NAME | 6 | 70 | Yes |
-| YOUR COMPANY NAME • CITY | 6 | 70 | Yes |
-| APPROVED | 10 | 100 | Yes |
-| RECEIVED | 10 | 100 | Yes |
+This keeps whitespace near the arc endpoints while ensuring the string fits the actual rendered path.
 
 ### Geometry helpers
 
@@ -93,7 +112,7 @@ This guarantees the final glyph is never clipped or wrapped to the bottom arc.
 | `fitArcTextRadius(fontSize, safeInnerR, maxR)` | Returns safe baseline radius for text-on-path (glyph top guaranteed ≤ safeInnerR) |
 | `fitCenterTextFontSize(text, safeInnerR, maxFontSize)` | Returns max safe font size for center text using Arial Bold char width ratio (0.58) |
 
-These helpers are used in `createDefaultStamp()` and are available for template generation and future user text auto-fit.
+These helpers are used in `createDefaultStamp()` and by the shared SVG renderer. Template previews and exports do not maintain a separate geometry implementation.
 
 ---
 
@@ -165,11 +184,13 @@ All values are computed at runtime by `createDefaultStamp()` using the geometry 
 | Frame `radius` | `95` (% of maxR) | 28.58 SVG units | Standard professional border |
 | Frame `strokeWidth` | `3` | — | Clean, visible border |
 | Frame `lineBreak` | `0` | — | Solid ring, no gap |
-| Arc `radius` | `69` (% of maxR) | 20.76 SVG units | Glyph top 23.08 ≤ safeInnerR 24.58 ✓ |
-| Arc `fontSize` | `8` pt | 8 pt (auto-fit may reduce `letterSpacing`) | Readable at stamp scale |
-| Arc `letterSpacing` | `100` (stored) | Reduced to ≤ 78 by auto-fit for bottom arc | Never overflows arc |
+| Arc `radius` | derived by `fitArcTextRadius(6, safeInnerR, maxR)` | `~71%` of maxR (`~21.40` SVG units) | Baseline stays inside the safe frame area |
+| Arc `fontSize` | `6` pt | `6` pt (auto-fit may reduce `letterSpacing`) | Restrained starter typography |
+| Arc `letterSpacing` | `100` (stored) | Reduced only if needed to fit the rendered arc | Never overflows arc |
 | Arc `bold` | `true` | — | Legibility |
-| Centre `fontSize` | `6` pt | `fitCenterTextFontSize("YOUR STAMP", 24.58, 14)` | Width 34.8 ≤ 40.3 available ✓ |
+| Top arc center | `startAngle = 0` | `12 o'clock` | Semantic top arc | Deterministic |
+| Bottom arc center | `startAngle = 0`, `inverse = true` | `6 o'clock` | Semantic bottom arc | Deterministic |
+| Centre `fontSize` | `6` pt | `fitCenterTextFontSize("YOUR STAMP", 24.58, 7)` | Width 34.8 ≤ 40.3 available ✓ |
 | Centre `x` / `y` | `50` / `50` | Canvas centre (125, 125) | Perfectly centred |
 | Centre `bold` | `true` | — | Legibility |
 | Colour (all elements) | `#1a3a6b` | — | Classic stamp blue |
@@ -192,11 +213,35 @@ The store uses Zustand `persist` (localStorage key `stampelo-editor`):
 The canonical stamp is produced by `createDefaultStamp("round")` in `client/src/editor/store.ts`. The function:
 
 1. Calls `getStampSafeGeometry(38)` to derive `maxR` and `safeInnerR`
-2. Calls `fitArcTextRadius(8, safeInnerR, maxR)` to get the arc radius percentage
-3. Calls `fitCenterTextFontSize("YOUR STAMP", safeInnerR, 14)` to get the centre font size
+2. Calls `fitArcTextRadius(6, safeInnerR, maxR)` to get the arc radius percentage
+3. Calls `fitCenterTextFontSize("YOUR STAMP", safeInnerR, 7)` to get the centre font size
 4. Constructs the 4-element array in the order: `frame → topArc → centerText → bottomArc`
 
 Do **not** hardcode SVG-unit values in `createDefaultStamp()`. Always derive them from the helpers so the geometry stays consistent if constants change.
+
+#### Renderer relationship
+
+`renderStampSvg()` is the single geometry implementation for:
+
+- main editor canvas
+- preview modal
+- stamp thumbnails
+- template library previews
+- PDF editor preview
+- SVG export
+- PNG export
+- PDF stamping/export rasterisation
+
+Do not introduce renderer-specific arc workarounds. If round text geometry changes, it must change here.
+
+#### Starter-stamp persistence policy
+
+The persisted editor state uses Zustand `persist` with schema version `3`.
+
+- New users get the current canonical starter stamp.
+- Returning users keep their persisted work.
+- Migration only replaces a stamp when it still matches the untouched historical starter signature.
+- User-customized stamps must not be overwritten just because the canonical starter changed.
 
 #### Regression tests
 

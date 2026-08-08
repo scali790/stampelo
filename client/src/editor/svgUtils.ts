@@ -10,6 +10,7 @@ import type {
 // Canvas is always 250x250 internal units (matching reference)
 export const CANVAS_SIZE = 250;
 export const CANVAS_CENTER = CANVAS_SIZE / 2;
+const TEXT_PATH_SWEEP_DEGREES = 160;
 
 // ─── Shabby filter definition ─────────────────────────────────────────────────
 export function getShabbyFilter(id: string): string {
@@ -124,47 +125,87 @@ function renderFrame(el: FrameElement, stamp: Stamp): string {
 }
 
 // ─── Text on path renderer ────────────────────────────────────────────────────
+export interface TextPathGeometry {
+  role: "top" | "bottom";
+  radius: number;
+  centerAngleDeg: number;
+  startAngleDeg: number;
+  endAngleDeg: number;
+  sweepFlag: 0 | 1;
+  largeArcFlag: 0 | 1;
+  pathLength: number;
+  pathD: string;
+}
+
+function normalizeAngleDeg(angleDeg: number): number {
+  return ((angleDeg % 360) + 360) % 360;
+}
+
+function polarToCartesian(radius: number, clockAngleDeg: number): { x: number; y: number } {
+  const rad = ((clockAngleDeg - 90) * Math.PI) / 180;
+  return {
+    x: CANVAS_CENTER + radius * Math.cos(rad),
+    y: CANVAS_CENTER + radius * Math.sin(rad),
+  };
+}
+
+export function getTextPathGeometry(el: TextOnPathElement, stamp: Stamp): TextPathGeometry {
+  const maxR = (stamp.widthMm / 150) * (CANVAS_SIZE / 2) * 0.95;
+  const radius = (el.radius / 100) * maxR;
+  const role = el.inverse ? "bottom" : "top";
+  const centerAngleDeg = normalizeAngleDeg((el.inverse ? 180 : 0) + el.startAngle);
+  const halfSweep = TEXT_PATH_SWEEP_DEGREES / 2;
+  const startAngleDeg = normalizeAngleDeg(
+    el.inverse ? centerAngleDeg + halfSweep : centerAngleDeg - halfSweep
+  );
+  const endAngleDeg = normalizeAngleDeg(
+    el.inverse ? centerAngleDeg - halfSweep : centerAngleDeg + halfSweep
+  );
+  const sweepFlag: 0 | 1 = el.inverse ? 0 : 1;
+  const largeArcFlag: 0 | 1 = TEXT_PATH_SWEEP_DEGREES > 180 ? 1 : 0;
+  const start = polarToCartesian(radius, startAngleDeg);
+  const end = polarToCartesian(radius, endAngleDeg);
+  const pathD = `M ${start.x.toFixed(2)},${start.y.toFixed(2)} A ${radius.toFixed(2)},${radius.toFixed(2)} 0 ${largeArcFlag},${sweepFlag} ${end.x.toFixed(2)},${end.y.toFixed(2)}`;
+  const pathLength = radius * ((TEXT_PATH_SWEEP_DEGREES * Math.PI) / 180);
+
+  return {
+    role,
+    radius,
+    centerAngleDeg,
+    startAngleDeg,
+    endAngleDeg,
+    sweepFlag,
+    largeArcFlag,
+    pathLength,
+    pathD,
+  };
+}
+
 // Returns { defs, svg } so defs can be hoisted to top-level <defs>
 function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): { defs: string; svg: string } {
-  const cx = CANVAS_CENTER;
-  const cy = CANVAS_CENTER;
-  const maxR = (stamp.widthMm / 150) * (CANVAS_SIZE / 2) * 0.95;
-  const r = (el.radius / 100) * maxR;
   const pathId = `tp-path-${elIdx}`;
-  const startAngleDeg = el.startAngle;
+  const geometry = getTextPathGeometry(el, stamp);
 
-  // Full circle path for text on path — text starts at top (270deg = -90deg from right)
-  // We use a full circle so text can start anywhere
-  const startRad = ((startAngleDeg - 90) * Math.PI) / 180;
-  const startX = cx + r * Math.cos(startRad);
-  const startY = cy + r * Math.sin(startRad);
-  // Arc: go 180 degrees then another 180 (full circle via two arcs)
-  const midRad = startRad + Math.PI;
-  const midX = cx + r * Math.cos(midRad);
-  const midY = cy + r * Math.sin(midRad);
-
-  let pathD: string;
-  if (el.inverse) {
-    // Bottom arc — text reads inside/upside-down
-    pathD = `M ${startX.toFixed(2)},${startY.toFixed(2)} A ${r},${r} 0 0,0 ${midX.toFixed(2)},${midY.toFixed(2)} A ${r},${r} 0 0,0 ${startX.toFixed(2)},${startY.toFixed(2)}`;
-  } else {
-    // Top arc — normal reading direction
-    pathD = `M ${startX.toFixed(2)},${startY.toFixed(2)} A ${r},${r} 0 0,1 ${midX.toFixed(2)},${midY.toFixed(2)} A ${r},${r} 0 0,1 ${startX.toFixed(2)},${startY.toFixed(2)}`;
-  }
-
-  // Auto-fit font size and letter-spacing to the available arc length.
-  // This prevents text from overflowing the arc and being clipped.
-  const fitted = fitArcText(el.text, r, el.fontSize, el.letterSpacing);
+  // Auto-fit font size and letter-spacing to the usable portion of the
+  // semantic arc. This keeps whitespace near the endpoints without relying on
+  // full-circle offsets.
+  const fitted = fitArcText(el.text, geometry.pathLength, el.fontSize, el.letterSpacing);
   const fontStyle = `font-family="${el.font}" font-size="${fitted.fontSize}"${el.bold ? ' font-weight="bold"' : ''}${el.italic ? ' font-style="italic"' : ''}`;
   const spacingPx = (fitted.letterSpacing - 100) * 0.08;
   const spacing = spacingPx !== 0 ? ` letter-spacing="${spacingPx.toFixed(2)}"` : "";
-  const anchor = el.align;
-  const offset = el.align === "center" ? "50%" : el.align === "right" ? "100%" : "0%";
+  const textLength = getRequiredArcLength(el.text.length, fitted.fontSize, fitted.letterSpacing);
+  const availableOffset = Math.max(geometry.pathLength - textLength, 0);
+  const offset =
+    el.align === "center"
+      ? (availableOffset / 2).toFixed(2)
+      : el.align === "right"
+        ? availableOffset.toFixed(2)
+        : "0";
 
   return {
-    defs: `<path id="${pathId}" d="${pathD}" fill="none"/>`,
+    defs: `<path id="${pathId}" d="${geometry.pathD}" fill="none"/>`,
     svg: `<text fill="${el.color}" ${fontStyle}${spacing}>
-  <textPath href="#${pathId}" startOffset="${offset}" text-anchor="${anchor}">${escapeXml(el.text)}</textPath>
+  <textPath href="#${pathId}" startOffset="${offset}">${escapeXml(el.text)}</textPath>
 </text>`,
   };
 }
@@ -172,7 +213,7 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
 // ─── Arc-length auto-fit helper ───────────────────────────────────────────────
 // Computes the font size and letter-spacing needed to fit text on a circular arc.
 //
-// Available arc = PI * r * ARC_USABLE_FRACTION  (top semicircle × usable fraction)
+// Available arc = pathLength * ARC_USABLE_FRACTION
 // Required arc  = numChars * fontSize * CHAR_WIDTH_RATIO + letterSpacingExtra
 //
 // Strategy:
@@ -183,42 +224,36 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
 //
 // Returns { fontSize, letterSpacing } — both may be reduced from the input values.
 
-const ARC_USABLE_FRACTION = 0.78;   // use 78% of top semicircle (leaves 11% margin each side)
+const ARC_USABLE_FRACTION = 0.92;   // reserve a small margin near each semantic arc endpoint
 const ARC_CHAR_WIDTH_RATIO = 0.58;  // Arial Bold average char width / fontSize
 const MIN_FONT_SIZE_ARC = 6;        // minimum readable font size on arc
 const MIN_LETTER_SPACING = 70;      // minimum letter-spacing (30% compression)
 
-function fitArcText(
+export function fitArcText(
   text: string,
-  arcRadius: number,
+  pathLength: number,
   requestedFontSize: number,
   requestedLetterSpacing: number
 ): { fontSize: number; letterSpacing: number } {
   const numChars = text.length;
   if (numChars === 0) return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
 
-  const availableArc = Math.PI * arcRadius * ARC_USABLE_FRACTION;
-
-  // Helper: compute required arc length for given fontSize and letterSpacing
-  function requiredArc(fs: number, ls: number): number {
-    const spacingPx = (ls - 100) * 0.08;
-    return numChars * fs * ARC_CHAR_WIDTH_RATIO + spacingPx * (numChars - 1);
-  }
+  const availableArc = pathLength * ARC_USABLE_FRACTION;
 
   // Step 1: try requested values
-  if (requiredArc(requestedFontSize, requestedLetterSpacing) <= availableArc) {
+  if (getRequiredArcLength(numChars, requestedFontSize, requestedLetterSpacing) <= availableArc) {
     return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
   }
 
   // Step 2: reduce letter-spacing to minimum, keep fontSize
-  if (requiredArc(requestedFontSize, MIN_LETTER_SPACING) <= availableArc) {
+  if (getRequiredArcLength(numChars, requestedFontSize, MIN_LETTER_SPACING) <= availableArc) {
     // Binary search for the maximum letterSpacing that still fits.
     // Since requiredArc is increasing in letterSpacing, we search for the largest
     // value in [MIN_LETTER_SPACING, requestedLetterSpacing] where req <= available.
     let lo = MIN_LETTER_SPACING, hi = requestedLetterSpacing;
     for (let i = 0; i < 8; i++) {
       const mid = Math.floor((lo + hi) / 2);
-      if (requiredArc(requestedFontSize, mid) <= availableArc) lo = mid + 1; // fits, try larger
+      if (getRequiredArcLength(numChars, requestedFontSize, mid) <= availableArc) lo = mid + 1; // fits, try larger
       else hi = mid - 1; // doesn't fit, go smaller
     }
     return { fontSize: requestedFontSize, letterSpacing: hi };
@@ -228,6 +263,11 @@ function fitArcText(
   const maxFontSize = availableArc / (numChars * ARC_CHAR_WIDTH_RATIO);
   const fontSize = Math.max(MIN_FONT_SIZE_ARC, Math.floor(maxFontSize));
   return { fontSize, letterSpacing: MIN_LETTER_SPACING };
+}
+
+function getRequiredArcLength(numChars: number, fontSize: number, letterSpacing: number): number {
+  const spacingPx = (letterSpacing - 100) * 0.08;
+  return numChars * fontSize * ARC_CHAR_WIDTH_RATIO + spacingPx * Math.max(numChars - 1, 0);
 }
 
 // ─── Center text renderer ─────────────────────────────────────────────────────
