@@ -33,7 +33,36 @@ The display size is proportional to the rendered page width:
 stampDisplayPx = (stamp.widthMm / 150) × 200 × placement.scale
 ```
 
-The stamp overlay is draggable (mouse events on the container div). Position is stored as `x/y` percentage of page width/height.
+### Interaction Handles
+
+The stamp overlay uses standard design-tool handles (commit `1b4ac9a`):
+
+| Handle | Count | Appearance | Action |
+|---|---|---|---|
+| Corner resize | 4 (NW, NE, SE, SW) | White square, blue border | Drag to scale uniformly |
+| Edge resize | 4 (N, S, E, W) | White square, blue border | Drag to scale uniformly |
+| Rotation | 1 (below stamp) | White circle with RotateCw icon | Drag to rotate around center |
+| Move | (stamp body) | Grab cursor | Drag to reposition |
+
+A dashed blue selection border (1.5px, `#3b82f6`) surrounds the stamp. Handles sit on the border corners and edges.
+
+**Resize math:**
+```
+delta = mouse displacement in the handle's primary direction
+newSizePx = max(30, currentSizePx + delta × 1.5)
+newScale = newSizePx / ((widthMm / 150) × 200)
+scale clamped to [0.1, 5]
+```
+
+**Rotation math:**
+```
+angle = atan2(mouseY - stampCenterY, mouseX - stampCenterX) × (180/π) + 90
+rotation = ((angle % 360) + 360) % 360
+```
+
+The left panel Scale and Rotation sliders stay in sync with all handle interactions.
+
+Position is stored as `x/y` percentage of page width/height.
 
 ---
 
