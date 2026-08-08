@@ -1,6 +1,18 @@
 import { renderStampSvg } from "../client/src/editor/svgUtils";
 import type { Stamp } from "../client/src/editor/types";
-import sharp from "sharp";
+import { initWasm, Resvg } from "@resvg/resvg-wasm";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Initialise resvg-wasm once (lazy, idempotent)
+let resvgReady = false;
+async function ensureResvg() {
+  if (resvgReady) return;
+  const wasmPath = join(process.cwd(), "node_modules/@resvg/resvg-wasm/index_bg.wasm");
+  const wasmBuffer = readFileSync(wasmPath);
+  await initWasm(wasmBuffer);
+  resvgReady = true;
+}
 
 // ─── SVG Export ───────────────────────────────────────────────────────────────
 export function generateSvg(stamp: Stamp): string {
@@ -9,15 +21,18 @@ export function generateSvg(stamp: Stamp): string {
 
 // ─── PNG Export via Sharp ─────────────────────────────────────────────────────
 export async function generatePng(stamp: Stamp, dpi = 600): Promise<Buffer> {
+  await ensureResvg();
   const svgString = generateSvg(stamp);
-  // At 600 DPI, 38mm = 38 * 600/25.4 ≈ 898px
+  // At given DPI, 38mm = 38 * dpi/25.4 ≈ 898px at 600 DPI
   const sizePx = Math.round((stamp.widthMm * dpi) / 25.4);
-  const svgBuffer = Buffer.from(svgString);
-  const png = await sharp(svgBuffer)
-    .resize(sizePx, sizePx, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png({ compressionLevel: 9 })
-    .toBuffer();
-  return png;
+  const resvg = new Resvg(svgString, {
+    fitTo: { mode: "width", value: sizePx },
+    background: "rgba(0,0,0,0)",
+  });
+  const rendered = resvg.render();
+  const png = rendered.asPng();
+  rendered.free();
+  return Buffer.from(png);
 }
 
 // ─── EPS Export (SVG wrapped in EPS) ─────────────────────────────────────────

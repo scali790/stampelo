@@ -17,7 +17,7 @@ rm -rf .vercel/output
 mkdir -p .vercel/output/static .vercel/output/functions/api/server.func
 cp -r dist/public/. .vercel/output/static/
 
-npx esbuild src/server-entry.ts --platform=node --format=esm --bundle --external:@resvg/resvg-wasm --external:sharp --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" --outfile=.vercel/output/functions/api/server.func/index.mjs
+npx esbuild src/server-entry.ts --platform=node --format=esm --bundle --external:@resvg/resvg-wasm --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" --outfile=.vercel/output/functions/api/server.func/index.mjs
 cat > .vercel/output/functions/api/server.func/.vc-config.json << 'VCEOF'
 {"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true,"maxDuration":60}
 VCEOF
@@ -66,24 +66,4 @@ CFGEOF
 bash scripts/verify-bundle.sh .vercel/output/functions/api/server.func/index.mjs
 RESVG_DIR="node_modules/@resvg/resvg-wasm"
 if [ -d "$RESVG_DIR" ]; then mkdir -p .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm; cp -r "$RESVG_DIR/." .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm/; else echo "[build] WARNING: @resvg/resvg-wasm not found"; fi
-# ── Copy sharp native binary ──────────────────────────────────────────────────
-SHARP_DIR="node_modules/.pnpm/sharp@0.35.3_@types+node@24.7.0/node_modules/sharp"
-if [ -d "$SHARP_DIR" ]; then
-  mkdir -p .vercel/output/functions/api/server.func/node_modules/sharp
-  cp -r "$SHARP_DIR/." .vercel/output/functions/api/server.func/node_modules/sharp/
-  # Copy ALL @img/* packages (Sharp depends on @img/colour, @img/sharp-linux-x64, etc.)
-  for IMG_PKG_DIR in node_modules/.pnpm/@img+*/node_modules/@img; do
-    if [ -d "$IMG_PKG_DIR" ]; then
-      for IMG_PKG in "$IMG_PKG_DIR"/*/; do
-        PKG_NAME=$(basename "$IMG_PKG")
-        mkdir -p ".vercel/output/functions/api/server.func/node_modules/@img/$PKG_NAME"
-        cp -r "$IMG_PKG." ".vercel/output/functions/api/server.func/node_modules/@img/$PKG_NAME/"
-      done
-    fi
-  done
-  # Also copy detect-libc (required by Sharp for platform detection)
-  for DLIBC in node_modules/.pnpm/detect-libc*/node_modules/detect-libc; do
-    [ -d "$DLIBC" ] && mkdir -p ".vercel/output/functions/api/server.func/node_modules/detect-libc" && cp -r "$DLIBC/." ".vercel/output/functions/api/server.func/node_modules/detect-libc/" && break
-  done
-fi
 echo "[build] Done."
