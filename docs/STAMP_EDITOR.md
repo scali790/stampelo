@@ -122,13 +122,94 @@ Hard safety conditions prevent overflow: `displayW ≤ stageW × 0.9`, `displayH
 
 **Zoom model:** 100% = Fit (stamp fills ~75% of stage). Manual zoom steps: 25% increments, range 25%–400%.
 
-### Default stamp geometry (38mm round)
+### Canonical Default Starter Stamp
 
-| Element | Value | Rationale |
-|---|---|---|
-| Text-on-path radius | 67% of maxR | Glyph top (23.08) safely below safeInnerR (24.58) |
-| Text-on-path fontSize | 10 | Fits within safe arc; auto-fit reduces if text is long |
-| Center text fontSize | 13 | Auto-fit for "STAMP" (width 37.7 vs inner diameter 49.2) |
+> **This is the authoritative specification.** Any change to the first-load stamp must be reflected here first.
+
+The editor shows a **canonical starter stamp** to every new user on first load (`/editor` with no prior session). It is the product's first impression and must look like a real, finished stamp — not a test artefact.
+
+#### Purpose
+
+The starter stamp serves two goals simultaneously:
+
+1. **Trust signal** — a new user must immediately think *"this is what my stamp could look like"*, not *"this is broken"*.
+2. **Feature showcase** — it demonstrates all three core editor capabilities: Frame, Text on Path (top + bottom arc), and Center Text.
+
+#### Design rules (non-negotiable)
+
+- No abridged or placeholder-feeling text (no bare `STAMP`, no `TEST`, no lorem ipsum)
+- No text clipping, no frame collision, no oversized glyphs
+- No effects active by default (`shabby=false`, `gold=false`, `silver=false`)
+- All geometry computed via the safe-area helpers — never hardcoded pixel values
+- Visually centred and balanced: top arc weight ≈ bottom arc weight
+
+#### Canonical content
+
+| # | Element type | Text | `inverse` | Role |
+|---|---|---|---|---|
+| 1 | `frame` | — | — | Outer border ring |
+| 2 | `text-on-path` | `STAMPELO.COM` | `false` | Top arc — brand / demo context |
+| 3 | `center-text` | `YOUR STAMP` | — | Centre — personalisation placeholder |
+| 4 | `text-on-path` | `CREATE IN SECONDS` | `true` | Bottom arc — product promise |
+
+Elements are stored in this exact order (index 0–3). The frame is always the bottom-most layer.
+
+#### Canonical geometry (38 mm round)
+
+All values are computed at runtime by `createDefaultStamp()` using the geometry helpers. The table below shows the expected computed values for a 38 mm round stamp.
+
+| Property | Stored value | Computed / rendered value | Constraint |
+|---|---|---|---|
+| Shape | `round` | — | Fixed for starter stamp |
+| `widthMm` / `heightMm` | `38` / `38` | — | Fixed |
+| Frame `radius` | `95` (% of maxR) | 28.58 SVG units | Standard professional border |
+| Frame `strokeWidth` | `3` | — | Clean, visible border |
+| Frame `lineBreak` | `0` | — | Solid ring, no gap |
+| Arc `radius` | `69` (% of maxR) | 20.76 SVG units | Glyph top 23.08 ≤ safeInnerR 24.58 ✓ |
+| Arc `fontSize` | `8` pt | 8 pt (auto-fit may reduce `letterSpacing`) | Readable at stamp scale |
+| Arc `letterSpacing` | `100` (stored) | Reduced to ≤ 78 by auto-fit for bottom arc | Never overflows arc |
+| Arc `bold` | `true` | — | Legibility |
+| Centre `fontSize` | `6` pt | `fitCenterTextFontSize("YOUR STAMP", 24.58, 14)` | Width 34.8 ≤ 40.3 available ✓ |
+| Centre `x` / `y` | `50` / `50` | Canvas centre (125, 125) | Perfectly centred |
+| Centre `bold` | `true` | — | Legibility |
+| Colour (all elements) | `#1a3a6b` | — | Classic stamp blue |
+| Effects | all `false` | — | Clean default |
+
+#### First-load vs. returning-user behaviour
+
+The store uses Zustand `persist` (localStorage key `stampelo-editor`):
+
+| Scenario | Behaviour |
+|---|---|
+| **New user** (no localStorage key) | `initialState` in `store.ts` loads the canonical starter stamp |
+| **Returning user** (key present) | Persisted stamps are rehydrated — no data loss, no override |
+| **`resetEditor()` called** | Always resets to a fresh canonical starter stamp (new IDs) |
+| **Template loaded** | `loadState()` replaces the current state — starter stamp is not involved |
+| **Share link opened** | `loadState()` replaces the current state — starter stamp is not involved |
+
+#### Implementation
+
+The canonical stamp is produced by `createDefaultStamp("round")` in `client/src/editor/store.ts`. The function:
+
+1. Calls `getStampSafeGeometry(38)` to derive `maxR` and `safeInnerR`
+2. Calls `fitArcTextRadius(8, safeInnerR, maxR)` to get the arc radius percentage
+3. Calls `fitCenterTextFontSize("YOUR STAMP", safeInnerR, 14)` to get the centre font size
+4. Constructs the 4-element array in the order: `frame → topArc → centerText → bottomArc`
+
+Do **not** hardcode SVG-unit values in `createDefaultStamp()`. Always derive them from the helpers so the geometry stays consistent if constants change.
+
+#### Regression tests
+
+All assertions live in `server/defaultStamp.test.ts` (17 tests). Run with `pnpm test`. Tests cover:
+- Shape and size (`round`, 38 × 38 mm)
+- Exact element count (4) and element order
+- Canonical text strings for each layer
+- Brand colour `#1a3a6b` on all elements
+- All effects off by default
+- Arc glyph top ≤ `safeInnerR` (no frame collision)
+- Centre text width ≤ available safe width (no clipping)
+- Auto-fit produces `fontSize ≥ 6` and the fitted text fits the arc
+- Each `createDefaultStamp()` call returns a unique stamp ID
 
 ### Physical size label
 

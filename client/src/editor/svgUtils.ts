@@ -212,12 +212,14 @@ function fitArcText(
 
   // Step 2: reduce letter-spacing to minimum, keep fontSize
   if (requiredArc(requestedFontSize, MIN_LETTER_SPACING) <= availableArc) {
-    // Binary search for the minimum letterSpacing that fits
+    // Binary search for the maximum letterSpacing that still fits.
+    // Since requiredArc is increasing in letterSpacing, we search for the largest
+    // value in [MIN_LETTER_SPACING, requestedLetterSpacing] where req <= available.
     let lo = MIN_LETTER_SPACING, hi = requestedLetterSpacing;
     for (let i = 0; i < 8; i++) {
       const mid = Math.floor((lo + hi) / 2);
-      if (requiredArc(requestedFontSize, mid) <= availableArc) hi = mid;
-      else lo = mid + 1;
+      if (requiredArc(requestedFontSize, mid) <= availableArc) lo = mid + 1; // fits, try larger
+      else hi = mid - 1; // doesn't fit, go smaller
     }
     return { fontSize: requestedFontSize, letterSpacing: hi };
   }
