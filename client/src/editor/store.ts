@@ -326,6 +326,42 @@ export const useEditorStore = create<EditorStore>()(
         activeStampId: state.activeStampId,
         locale: state.locale,
       }),
+      // ─── Migration: replace the old broken default stamp ─────────────────
+      // Version 0 (no version key) = old default: single stamp with
+      //   centerText "STAMP" and one arc "YOUR COMPANY NAME".
+      // Version 1 = canonical starter stamp introduced 2026-08-08.
+      //
+      // On upgrade from v0 → v1 we check whether the persisted state looks
+      // like the old broken default (1 stamp, centerText "STAMP", no bottom
+      // arc). If so, we replace it with the canonical starter stamp so that
+      // existing users see the professional first-load experience.
+      // Users who have already customised their stamp (different text, more
+      // elements, etc.) are left untouched.
+      version: 1,
+      migrate: (persistedState: unknown, fromVersion: number) => {
+        if (fromVersion < 1) {
+          const s = persistedState as any;
+          const stamps: any[] = s?.stamps ?? [];
+          // Detect old broken default: exactly 1 stamp whose only center-text
+          // element still reads "STAMP" (the old placeholder).
+          const isOldDefault =
+            stamps.length === 1 &&
+            stamps[0]?.elements?.some(
+              (el: any) =>
+                (el.type === "center-text" || el.type === "centerText") &&
+                el.text === "STAMP"
+            );
+          if (isOldDefault) {
+            const fresh = createDefaultStamp("round");
+            return {
+              ...s,
+              stamps: [fresh],
+              activeStampId: fresh.id,
+            };
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );
