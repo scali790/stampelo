@@ -200,3 +200,75 @@ test.describe("Mobile Responsiveness", () => {
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5);
   });
 });
+
+// ─── Template library tests ───────────────────────────────────────────────────
+test.describe("Template Library", () => {
+  async function openTemplateLibrary(page: Page) {
+    await page.goto(`${BASE_URL}/editor`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /templates/i }).click();
+    await expect(page.getByText("Template Library")).toBeVisible();
+  }
+
+  test("category strip exposes the full live category set without stale empty categories", async ({ page }) => {
+    await page.setViewportSize({ width: 1700, height: 1000 });
+    await openTemplateLibrary(page);
+
+    const strip = page.getByTestId("template-category-strip");
+    await expect(strip).toBeVisible();
+    const labels = await strip.locator("button").allTextContents();
+
+    expect(labels).toEqual(expect.arrayContaining([
+      "All",
+      "Approval",
+      "Business",
+      "Document",
+      "Finance",
+      "Legal",
+      "Medical",
+      "Personal",
+      "Utility",
+    ]));
+    expect(labels).not.toContain("Legal / Notary");
+    expect(labels).not.toContain("Wedding");
+  });
+
+  test("category strip supports horizontal scrolling without page overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 900 });
+    await openTemplateLibrary(page);
+
+    const strip = page.getByTestId("template-category-strip");
+    const overflow = await strip.evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBeGreaterThan(0);
+
+    await strip.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    const utilityButton = strip.getByRole("button", { name: "Utility" });
+    await expect(utilityButton).toBeVisible();
+    await utilityButton.click();
+    await expect(utilityButton).toBeVisible();
+
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5);
+  });
+
+  test("switching category clears search and shows matching templates", async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await openTemplateLibrary(page);
+
+    const search = page.getByPlaceholder("Search templates...");
+    await search.fill("Corporate Seal Blue");
+    await expect(page.getByText("Corporate Seal Blue")).toBeVisible();
+
+    const strip = page.getByTestId("template-category-strip");
+    const medicalButton = strip.getByRole("button", { name: "Medical" });
+    await medicalButton.scrollIntoViewIfNeeded();
+    await medicalButton.click();
+
+    await expect(search).toHaveValue("");
+    await expect(page.locator("p").filter({ hasText: /^Medical Practice$/ })).toBeVisible();
+    await expect(page.locator("p").filter({ hasText: /^Clinic$/ })).toBeVisible();
+  });
+});

@@ -146,5 +146,4 @@ export const AVAILABLE_FONTS = [
   "Myriad Pro",
 ] as const;
 
-export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, 56, 64, 72] as const;
-
+export const FONT_SIZES = [4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, 56, 64, 72] as const;

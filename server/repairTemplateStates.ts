@@ -3,14 +3,23 @@ import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import { templates } from "../drizzle/schema";
 import { normalizeTemplateState } from "../shared/templateStateNormalization";
-
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+import { RAW_TEMPLATE_RECORDS } from "./seed300Templates";
 
 const apply = process.argv.includes("--apply");
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-const db = drizzle(pool);
 
 async function main() {
+  if (!process.env.DATABASE_URL) {
+    const changes = RAW_TEMPLATE_RECORDS.filter((record) =>
+      JSON.stringify(record.stateJson ?? null) !== JSON.stringify(normalizeTemplateState(record.stateJson))
+    );
+    console.log(`[Template repair] ${changes.length}/${RAW_TEMPLATE_RECORDS.length} source templates require canonical normalization.`);
+    console.log("[Template repair] DATABASE_URL is not configured, so this run is source-only and dry-run only.");
+    console.log(changes.slice(0, 20).map((change) => `- ${change.slug}: ${change.name}`).join("\n"));
+    return;
+  }
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool);
   const rows = await db.select().from(templates).where(eq(templates.isActive, true));
   const changes: Array<{ id: number; name: string; stateJson: unknown }> = [];
 
@@ -40,6 +49,5 @@ async function main() {
 
 main().catch(async error => {
   console.error(error);
-  await pool.end();
   process.exit(1);
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,14 +101,38 @@ export function TemplateDrawer({ open, onClose }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>();
   const { loadState } = useEditorStore();
+  const chipStripRef = useRef<HTMLDivElement>(null);
+  const selectedChipRef = useRef<HTMLButtonElement | null>(null);
 
   const [page, setPage] = useState(1);
   const { data: result, error, isLoading } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
-  const { data: categoryResults, error: categoryError } = trpc.template.categories.useQuery();
+  const categoryQuery = trpc.template.categories.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const categoryResults = categoryQuery.data ?? [];
+  const categoryError = categoryQuery.error;
   const templates = result?.items ?? [];
   const total = result?.total ?? 0;
   const totalPages = result?.totalPages ?? 1;
-  const categories = categoryResults ?? [];
+  const categories = categoryResults.filter((entry) => entry.count > 0);
+
+  useEffect(() => {
+    selectedChipRef.current?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+  }, [category, open]);
+
+  useEffect(() => {
+    const strip = chipStripRef.current;
+    if (!strip) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      strip.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+
+    strip.addEventListener("wheel", onWheel, { passive: false });
+    return () => strip.removeEventListener("wheel", onWheel);
+  }, []);
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
@@ -118,6 +142,7 @@ export function TemplateDrawer({ open, onClose }: Props) {
   };
 
   const selectCategory = (nextCategory?: string) => {
+    setSearch("");
     setCategory(nextCategory);
     setPage(1);
   };
@@ -143,19 +168,29 @@ export function TemplateDrawer({ open, onClose }: Props) {
                 className="pl-8 h-8 text-sm"
               />
             </div>
-            <ScrollArea className="w-full">
-              <div className="flex gap-1.5 pb-1">
+            <div
+              ref={chipStripRef}
+              aria-label="Template categories"
+              data-testid="template-category-strip"
+              className="w-full overflow-x-auto overscroll-x-contain"
+            >
+              <div className="flex w-max gap-1.5 pb-1 whitespace-nowrap">
                 <Button
-                  size="sm" variant={!category ? "default" : "outline"}
+                  size="sm"
+                  variant={!category ? "default" : "outline"}
                   className="h-6 text-xs whitespace-nowrap"
+                  ref={!category ? selectedChipRef : undefined}
                   onClick={() => selectCategory(undefined)}
-                >All</Button>
+                >
+                  All
+                </Button>
                 {categories.map(({ category: cat, count }) => (
                   <Button
                     key={cat}
                     size="sm"
                     variant={category === cat ? "default" : "outline"}
                     className="h-6 text-xs whitespace-nowrap"
+                    ref={category === cat ? selectedChipRef : undefined}
                     onClick={() => selectCategory(cat)}
                     title={`${count} template${count === 1 ? "" : "s"}`}
                   >
@@ -163,7 +198,7 @@ export function TemplateDrawer({ open, onClose }: Props) {
                   </Button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
             <div className="text-[11px] text-muted-foreground">
               {isLoading
                 ? "Loading templates…"
@@ -190,6 +225,7 @@ export function TemplateDrawer({ open, onClose }: Props) {
                 {templates.map((t) => (
                   <div
                     key={t.id}
+                    data-testid={`template-card-${String(t.id)}`}
                     className="border rounded-lg p-2 cursor-pointer hover:border-primary hover:bg-accent/30 transition-all"
                     onClick={() => handleLoad(t)}
                   >
@@ -204,9 +240,9 @@ export function TemplateDrawer({ open, onClose }: Props) {
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-3 py-2 border-t text-xs shrink-0 bg-background">
-              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
               <span className="text-muted-foreground">Page {page} / {totalPages}</span>
-              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
             </div>
           )}
         </div>

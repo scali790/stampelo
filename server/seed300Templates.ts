@@ -8,9 +8,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { templates } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL!, ssl: { rejectUnauthorized: false } });
-const db = drizzle(pool);
+import { pathToFileURL } from "url";
+import { normalizeTemplateState } from "../shared/templateStateNormalization";
 
 // ─── Helper to build stamp state JSON ─────────────────────────────────────────
 function makeRound(text1: string, text2: string, color = "#1a3a6b") {
@@ -40,6 +39,23 @@ function makeRoundWithSub(text1: string, center: string, sub: string, color = "#
         { id: "e3", type: "textOnPath", color, visible: true, text: text1, font: "Arial", fontSize: 10, bold: true, italic: false, align: "center", inverse: false, radius: 82, letterSpacing: 110, startAngle: 0 },
         { id: "e4", type: "centerText", color, visible: true, text: center, font: "Arial", fontSize: 14, bold: true, italic: false, x: 50, y: 45 },
         { id: "e5", type: "centerText", color, visible: true, text: sub, font: "Arial", fontSize: 9, bold: false, italic: false, x: 50, y: 62 },
+      ]
+    }],
+    activeStampId: "s1", locale: "en"
+  };
+}
+
+function makeRoundOccasion(topArc: string, center: string, bottomArc: string, color = "#1a3a6b") {
+  return {
+    stamps: [{
+      id: "s1", shape: "round", widthMm: 38, color,
+      effects: { shabby: false, gold: false, silver: false },
+      elements: [
+        { id: "e1", type: "frame", color, visible: true, radius: 90, strokeWidth: 4, lineBreakGap: 0 },
+        { id: "e2", type: "frame", color, visible: true, radius: 76, strokeWidth: 1.5, lineBreakGap: 0 },
+        { id: "e3", type: "textOnPath", color, visible: true, text: topArc, font: "Arial", fontSize: 9, bold: true, italic: false, align: "center", inverse: false, radius: 82, letterSpacing: 110, startAngle: 0 },
+        { id: "e4", type: "centerText", color, visible: true, text: center, font: "Arial", fontSize: 12, bold: true, italic: false, x: 50, y: 48 },
+        { id: "e5", type: "textOnPath", color, visible: true, text: bottomArc, font: "Arial", fontSize: 8, bold: false, italic: false, align: "center", inverse: true, radius: 82, letterSpacing: 108, startAngle: 0 },
       ]
     }],
     activeStampId: "s1", locale: "en"
@@ -93,7 +109,7 @@ function makeTriangle(line1: string, line2: string, color = "#1a3a6b") {
 }
 
 // ─── Template catalogue ────────────────────────────────────────────────────────
-const TEMPLATES: Array<{
+export const RAW_TEMPLATE_RECORDS: Array<{
   slug: string; category: string; name: string; nameDE: string;
   shape: string; sortOrder: number; searchTerms: string;
   stateJson: object;
@@ -413,7 +429,7 @@ const TEMPLATES: Array<{
   { slug: "per-with-love-1", category: "Personal", name: "With Love", nameDE: "Mit Liebe", shape: "round", sortOrder: 1101, searchTerms: "with love personal gift", stateJson: makeRound("WITH LOVE", "❤") },
   { slug: "per-thank-you-1", category: "Personal", name: "Thank You", nameDE: "Danke", shape: "round", sortOrder: 1102, searchTerms: "thank you personal gift", stateJson: makeRound("THANK YOU", "APPRECIATED") },
   { slug: "per-save-date-1", category: "Personal", name: "Save the Date", nameDE: "Save the Date", shape: "round", sortOrder: 1103, searchTerms: "save the date wedding personal", stateJson: makeRound("SAVE THE DATE", "WEDDING") },
-  { slug: "per-wedding-1", category: "Personal", name: "Wedding", nameDE: "Hochzeit", shape: "round", sortOrder: 1104, searchTerms: "wedding personal stamp", stateJson: makeRound("WEDDING", "CELEBRATION") },
+  { slug: "per-wedding-1", category: "Personal", name: "Wedding", nameDE: "Hochzeit", shape: "round", sortOrder: 1104, searchTerms: "wedding personal stamp", stateJson: makeRoundOccasion("WITH LOVE", "WEDDING", "CELEBRATION") },
   { slug: "per-family-1", category: "Personal", name: "Family", nameDE: "Familie", shape: "round", sortOrder: 1105, searchTerms: "family personal stamp", stateJson: makeRound("FAMILY", "OFFICIAL") },
   { slug: "per-personal-library", category: "Personal", name: "Personal Library", nameDE: "Privatbibliothek", shape: "rectangular", sortOrder: 1106, searchTerms: "personal library book stamp", stateJson: makeRect("PERSONAL LIBRARY", "From the collection of:", "Name:") },
   { slug: "per-from-desk-1", category: "Personal", name: "From the Desk of", nameDE: "Vom Schreibtisch von", shape: "rectangular", sortOrder: 1107, searchTerms: "from the desk of personal", stateJson: makeRect("FROM THE DESK OF", "Name:") },
@@ -427,10 +443,10 @@ const TEMPLATES: Array<{
   { slug: "per-personal-seal", category: "Personal", name: "Personal Seal", nameDE: "Persönliches Siegel", shape: "round", sortOrder: 1115, searchTerms: "personal seal stamp", stateJson: makeRound("PERSONAL SEAL", "OFFICIAL") },
   { slug: "per-custom-1", category: "Personal", name: "Custom Stamp", nameDE: "Individueller Stempel", shape: "round", sortOrder: 1116, searchTerms: "custom stamp personal", stateJson: makeRound("CUSTOM STAMP", "PERSONAL") },
   { slug: "per-wedding-rect", category: "Personal", name: "Wedding Rectangular", nameDE: "Hochzeit Rechteckig", shape: "rectangular", sortOrder: 1117, searchTerms: "wedding rectangular stamp", stateJson: makeRect("WEDDING", "Names:", "Date:") },
-  { slug: "per-engagement-1", category: "Personal", name: "Engagement", nameDE: "Verlobung", shape: "round", sortOrder: 1118, searchTerms: "engagement wedding personal", stateJson: makeRound("ENGAGEMENT", "CELEBRATION") },
+  { slug: "per-engagement-1", category: "Personal", name: "Engagement", nameDE: "Verlobung", shape: "round", sortOrder: 1118, searchTerms: "engagement wedding personal", stateJson: makeRoundOccasion("BEST WISHES", "ENGAGEMENT", "CELEBRATION") },
   { slug: "per-christening-1", category: "Personal", name: "Christening", nameDE: "Taufe", shape: "round", sortOrder: 1119, searchTerms: "christening baptism personal", stateJson: makeRound("CHRISTENING", "CELEBRATION") },
-  { slug: "per-graduation-1", category: "Personal", name: "Graduation", nameDE: "Abschluss", shape: "round", sortOrder: 1120, searchTerms: "graduation personal celebration", stateJson: makeRound("GRADUATION", "CONGRATULATIONS") },
-  { slug: "per-retirement-1", category: "Personal", name: "Retirement", nameDE: "Ruhestand", shape: "round", sortOrder: 1121, searchTerms: "retirement personal celebration", stateJson: makeRound("RETIREMENT", "CONGRATULATIONS") },
+  { slug: "per-graduation-1", category: "Personal", name: "Graduation", nameDE: "Abschluss", shape: "round", sortOrder: 1120, searchTerms: "graduation personal celebration", stateJson: makeRoundOccasion("CONGRATULATIONS", "GRADUATION", "ACHIEVEMENT") },
+  { slug: "per-retirement-1", category: "Personal", name: "Retirement", nameDE: "Ruhestand", shape: "round", sortOrder: 1121, searchTerms: "retirement personal celebration", stateJson: makeRoundOccasion("CONGRATULATIONS", "RETIREMENT", "BEST WISHES") },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DATE / SIGNATURE / UTILITY (16 templates)
@@ -473,13 +489,22 @@ const TEMPLATES: Array<{
   { slug: "min-oval-3", category: "Custom", name: "Starter Oval", nameDE: "Start Oval", shape: "oval", sortOrder: 1315, searchTerms: "starter oval custom blank", stateJson: makeOval("YOUR TEXT", "OFFICIAL") },
 ];
 
+export const TEMPLATE_RECORDS = RAW_TEMPLATE_RECORDS.map((record) => ({
+  ...record,
+  stateJson: normalizeTemplateState(record.stateJson),
+}));
+
 // ─── Seed function ─────────────────────────────────────────────────────────────
 async function seed() {
-  console.log(`[Seed] Starting template seed — ${TEMPLATES.length} templates`);
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool);
+
+  console.log(`[Seed] Starting template seed — ${TEMPLATE_RECORDS.length} templates`);
   let inserted = 0;
   let skipped = 0;
 
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     // Idempotency: check by slug
     const existing = await db.select().from(templates).where(eq(templates.slug as any, t.slug)).limit(1);
     if (existing.length > 0) {
@@ -501,11 +526,11 @@ async function seed() {
   }
 
   console.log(`[Seed] Done — inserted: ${inserted}, skipped (already exists): ${skipped}`);
-  console.log(`[Seed] Total templates in catalogue: ${TEMPLATES.length}`);
+  console.log(`[Seed] Total templates in catalogue: ${TEMPLATE_RECORDS.length}`);
 
   // Count by category
   const cats: Record<string, number> = {};
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     cats[t.category] = (cats[t.category] || 0) + 1;
   }
   console.log("[Seed] Category breakdown:");
@@ -515,7 +540,7 @@ async function seed() {
 
   // Count by shape
   const shapes: Record<string, number> = {};
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     shapes[t.shape] = (shapes[t.shape] || 0) + 1;
   }
   console.log("[Seed] Shape breakdown:");
@@ -526,4 +551,6 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed().catch((e) => { console.error(e); process.exit(1); });
+}
