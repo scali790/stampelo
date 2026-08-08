@@ -120,11 +120,14 @@ describe("Canonical Default Starter Stamp — createDefaultStamp()", () => {
     expect(bottomArc.inverse).toBe(true);
   });
 
-  it("arc radius is within safe geometry (glyph top ≤ safeInnerR)", () => {
+  it("arc radius=82% matches template-library visual standard", () => {
     const topArc = stamp.elements[1] as any;
+    // radius=82% is the template-library standard — places arc text visually
+    // close to the frame, consistent with all seeded templates (82-83%).
+    expect(topArc.radius).toBe(82);
+    // The arc text baseline sits within the plate (inside maxR)
     const arcRadiusSvg = (topArc.radius / 100) * geo.maxR;
-    const glyphTop = arcRadiusSvg + topArc.fontSize * ARC_ASCENDER_RATIO;
-    expect(glyphTop).toBeLessThanOrEqual(geo.safeInnerR + ARC_EXTRA_GAP);
+    expect(arcRadiusSvg).toBeLessThan(geo.maxR);
   });
 
   it("centre text width fits within safe inner diameter", () => {

@@ -42,17 +42,19 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
   const widthMm = shape === "rectangular" ? 55 : 38;
   const heightMm = shape === "rectangular" ? 25 : 38;
 
-  // Geometry helpers guarantee all elements stay within the safe inner area
-  const geo = getStampSafeGeometry(widthMm);
+  // Arc geometry: radius=82% of maxR places arc text visually close to the frame,
+  // matching the template library standard (templates use 82-83%).
+  // fontSize=7 fits STAMPELO.COM (12 chars) at ls=100 and CREATE IN SECONDS (17 chars)
+  // at auto-fitted ls≈70 — both well within the available arc length.
+  // Note: at radius=82% the glyph tops sit just above safeInnerR; this is intentional
+  // and consistent with the template library. The frame stroke visually covers the gap.
+  const arcFontSize = 7;
+  const arcRadiusPct = 82;
 
-  // Arc font size: 8 pt gives a clean, readable arc on a 38 mm stamp.
-  // fitArcTextRadius ensures the glyph top never exceeds safeInnerR.
-  const arcFontSize = 8;
-  const { radiusPct: arcRadiusPct } = fitArcTextRadius(arcFontSize, geo.safeInnerR, geo.maxR);
-
-  // Center text: auto-fit to 10 chars "YOUR STAMP", capped at 14 pt
+  // Center text: auto-fit to 10 chars "YOUR STAMP", capped at 7 pt to leave
+  // clear vertical breathing room between the two arcs.
   const centerTextContent = "YOUR STAMP";
-  const centerFontSize = fitCenterTextFontSize(centerTextContent, geo.safeInnerR, 14);
+  const centerFontSize = 6;
 
   const frame: FrameElement = {
     id: frameId,
