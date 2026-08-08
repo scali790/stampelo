@@ -71,9 +71,19 @@ SHARP_DIR="node_modules/.pnpm/sharp@0.35.3_@types+node@24.7.0/node_modules/sharp
 if [ -d "$SHARP_DIR" ]; then
   mkdir -p .vercel/output/functions/api/server.func/node_modules/sharp
   cp -r "$SHARP_DIR/." .vercel/output/functions/api/server.func/node_modules/sharp/
-  # Copy @img/sharp-linux-x64 native binary
-  for IMG_PKG in node_modules/.pnpm/@img+sharp-linux-x64*/node_modules/@img/sharp-linux-x64; do
-    [ -d "$IMG_PKG" ] && mkdir -p ".vercel/output/functions/api/server.func/node_modules/@img/sharp-linux-x64" && cp -r "$IMG_PKG/." ".vercel/output/functions/api/server.func/node_modules/@img/sharp-linux-x64/" && break
+  # Copy ALL @img/* packages (Sharp depends on @img/colour, @img/sharp-linux-x64, etc.)
+  for IMG_PKG_DIR in node_modules/.pnpm/@img+*/node_modules/@img; do
+    if [ -d "$IMG_PKG_DIR" ]; then
+      for IMG_PKG in "$IMG_PKG_DIR"/*/; do
+        PKG_NAME=$(basename "$IMG_PKG")
+        mkdir -p ".vercel/output/functions/api/server.func/node_modules/@img/$PKG_NAME"
+        cp -r "$IMG_PKG." ".vercel/output/functions/api/server.func/node_modules/@img/$PKG_NAME/"
+      done
+    fi
+  done
+  # Also copy detect-libc (required by Sharp for platform detection)
+  for DLIBC in node_modules/.pnpm/detect-libc*/node_modules/detect-libc; do
+    [ -d "$DLIBC" ] && mkdir -p ".vercel/output/functions/api/server.func/node_modules/detect-libc" && cp -r "$DLIBC/." ".vercel/output/functions/api/server.func/node_modules/detect-libc/" && break
   done
 fi
 echo "[build] Done."
