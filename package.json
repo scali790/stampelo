@@ -16,6 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx server/seed300Templates.ts",
+    "template:audit": "tsx server/auditTemplates.ts",
+    "template:repair": "tsx server/repairTemplateStates.ts",
     "test:e2e": "playwright test",
     "vercel-build": "bash scripts/build-vercel.sh"
   },

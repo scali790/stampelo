@@ -2,9 +2,38 @@
 
 ## Overview
 
-Stampelo ships with **318 editable templates** across 14 categories. The marketing claim "300+ editable templates" is valid as long as the active template count remains >= 300.
+Stampelo currently has **318 active template records** in the production Neon database.
 
-**Current active count: 318** (verified 2026-08-07).
+Do **not** equate the database row count with 318 visually distinct, production-quality templates. The 2026-08-08 audit found that the original catalogue was generated from a small set of structural builders and stored with a legacy editor-state schema that the current renderer does not fully understand without normalization.
+
+Until the visual-quality audit is completed, the canonical product statement is **"318 active template records"**, not "318 distinct designs".
+
+## 2026-08-08 production audit
+
+Verified directly against `stampelo-db`:
+
+- 318 active rows.
+- 318/318 states use legacy `centerText` element types instead of canonical `center-text`.
+- 171/318 states use legacy `textOnPath` instead of canonical `text-on-path`.
+- 318/318 states omit `heightMm`.
+- 318/318 rows have `thumbnailSvg = NULL`.
+- The catalogue is generated from only six basic structural layout archetypes when grouped by shape and element structure.
+- The largest archetype is a two-ring round stamp with one arc-text element and one center-text element (156 templates).
+- Rectangular templates are heavily concentrated in one-frame/two-or-three-line layouts.
+
+These findings explain the previous Template Library behaviour: frames rendered because `frame` remained a valid element type, while legacy text elements were ignored by the current renderer; rectangular/oval previews could also become invalid because their height was missing.
+
+## Canonical editor-state schema
+
+Template state must use the same schema as `client/src/editor/types.ts`:
+
+- `text-on-path`, not `textOnPath`
+- `center-text`, not `centerText`
+- `frame.lineBreak`, not `lineBreakGap`
+- every stamp must have both `widthMm` and `heightMm`
+- `selectedElementId` should be present at state level (normally `null` for templates)
+
+`shared/templateStateNormalization.ts` provides backward-compatible normalization for existing stored templates.
 
 ## Template Model
 
@@ -23,22 +52,54 @@ Each template is stored in the `templates` PostgreSQL table with:
 | `slug` | URL-friendly identifier |
 | `searchTerms` | Additional search keywords |
 
-## Categories (14 active)
+## Current database categories
 
-Corporate, Medical, Legal / Notary, Wedding, Finance / Banking, Education, Government, Real Estate, Construction, Transport, Retail, Restaurant / Food, Technology, Creative / Design.
+The live database currently contains 14 categories:
 
-## Shapes
+Business, Approval, Finance, Document, Logistics, Legal, Medical, Personal, Construction, Custom, Education, Real Estate, Retail, Utility.
 
-Round (161), Rectangular (143), Oval (10), Triangular (4).
+The frontend's historical hard-coded category list does not fully match these database values. Category taxonomy must be normalized separately; the database must remain the factual source during that migration.
 
 ## Preview Generation
 
-Template thumbnails are generated **client-side** from `stateJson` using `renderStampSvg()`. If `thumbnailSvg` is populated in the database, it is used directly; otherwise the client renders a live preview.
+Template thumbnails are rendered client-side from normalized `stateJson` using `renderStampSvg()`. `thumbnailSvg` is only a fallback and is currently absent for all 318 production records.
 
-## Search and Filter
+The Template Library must distinguish API/database failure from a genuine zero-result query. A backend error must never be displayed as "No templates".
 
-The `template.list` tRPC procedure supports category filter, shape filter, full-text search, and pagination.
+## Audit and repair commands
 
-## Seeding
+Run a read-only production audit:
 
-Templates are seeded via `scripts/seed-templates.ts`. The seed script is idempotent (upsert by slug).
+```bash
+DATABASE_URL="$DATABASE_URL" pnpm template:audit
+```
+
+Preview the canonical state repair without changing data:
+
+```bash
+DATABASE_URL="$DATABASE_URL" pnpm template:repair
+```
+
+Apply only the schema-normalization repair after review:
+
+```bash
+DATABASE_URL="$DATABASE_URL" pnpm template:repair -- --apply
+```
+
+The repair changes only legacy state-schema fields and missing dimensions; it does not claim to create unique designs or solve catalogue quality by itself.
+
+## Quality classification
+
+The next catalogue phase classifies every template as:
+
+- **A — usable:** complete, readable and meaningfully distinct.
+- **B — repairable:** useful concept but geometry/content needs redesign.
+- **C — duplicate/junk:** empty, misleading, effectively identical or not useful as a separate template.
+
+The active marketing count must eventually reflect usable templates, not raw rows.
+
+## Source catalogue
+
+The current generated source catalogue is `server/seed300Templates.ts`, invoked by `pnpm db:seed`. The older documentation reference to `scripts/seed-templates.ts` was incorrect.
+
+The historical seeder is the origin of the legacy schema and repeated layout families. New templates must be authored against the canonical editor-state schema and must pass the visual-quality gate before activation.

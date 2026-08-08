@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { useEditorStore } from "./store";
 import { Search } from "lucide-react";
 import { TEMPLATE_CATEGORIES } from "../../../shared/templateData";
+import { normalizeTemplateState, normalizeTemplateStamp } from "../../../shared/templateStateNormalization";
 import { renderStampSvg, CANVAS_SIZE, CANVAS_CENTER } from "./svgUtils";
 import type { Stamp } from "./types";
 
@@ -56,19 +57,19 @@ function normalizeSvgForThumbnail(svg: string, bounds?: PreviewBounds) {
   });
 }
 
-// Generate the canonical preview from editable stateJson. This deliberately
-// takes precedence over legacy thumbnailSvg values because some stored
-// thumbnails were generated with the old full-canvas geometry.
+// Generate the canonical preview from editable stateJson. Legacy seeded states
+// are normalized first because the original catalogue used camelCase element
+// type names and omitted heightMm on every stamp.
 function TemplateSvgPreview({ stateJson, fallbackSvg }: { stateJson: unknown; fallbackSvg?: string | null }) {
   try {
-    const state = stateJson as { stamps?: Stamp[]; activeStampId?: string };
-    const stamp = state?.stamps?.[0];
+    const state = normalizeTemplateState(stateJson);
+    const stamp = state.stamps[0];
     if (stamp) {
       const svg = normalizeSvgForThumbnail(renderStampSvg(stamp), getPreviewBounds(stamp));
       return <PreviewFrame svg={svg} />;
     }
-  } catch {
-    // Fall through to a stored thumbnail when a legacy state cannot be parsed.
+  } catch (error) {
+    console.error("[TemplateSvgPreview] render failed", error);
   }
 
   if (fallbackSvg) {
@@ -103,14 +104,14 @@ export function TemplateDrawer({ open, onClose }: Props) {
   const { loadState } = useEditorStore();
 
   const [page, setPage] = useState(1);
-  const { data: result } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
+  const { data: result, error, isLoading } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
   const templates = result?.items ?? [];
   const total = result?.total ?? 0;
   const totalPages = result?.totalPages ?? 1;
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
-      loadState(template.stateJson as any);
+      loadState(normalizeTemplateState(template.stateJson));
     }
     onClose();
   };
@@ -159,14 +160,18 @@ export function TemplateDrawer({ open, onClose }: Props) {
               </div>
             </ScrollArea>
             <div className="text-[11px] text-muted-foreground">
-              {total > 0 ? `${total} template${total === 1 ? "" : "s"}` : "No templates"}
+              {isLoading ? "Loading templates…" : error ? "Template service unavailable" : total > 0 ? `${total} template${total === 1 ? "" : "s"}` : "No templates"}
             </div>
           </div>
 
           <ScrollArea className="flex-1 min-h-0">
-            {templates.length === 0 ? (
+            {error ? (
+              <div className="p-8 text-center text-sm text-destructive">
+                Templates could not be loaded. Please try again.
+              </div>
+            ) : templates.length === 0 && !isLoading ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                No templates found. Templates will appear here once added by an admin.
+                No templates found.
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 p-3">
