@@ -64,6 +64,8 @@ export default function PdfEditor() {
   const [isStamping, setIsStamping] = useState(false);
   const [dragMode, setDragMode] = useState<DragMode>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, scale: 1, rotation: 0, stampX: 0, stampY: 0 });
+  // For rotation: store the initial angle from stamp center to mouse at drag start
+  const [rotateStartAngle, setRotateStartAngle] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const stamp = useEditorStore((s) => s.stamps.find((st) => st.id === s.activeStampId));
@@ -481,5 +483,4 @@ export default function PdfEditor() {
     </div>
   );
 }
-  // For rotation: store the angle from stamp center to the mouse at drag start
-  const [rotateStartAngle, setRotateStartAngle] = useState(0);
+
