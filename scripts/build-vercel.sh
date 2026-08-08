@@ -5,8 +5,11 @@ echo "[build] Building Vite frontend..."
 npx vite build
 
 echo "[build] Generating route-aware SEO HTML..."
-node scripts/build-seo-pages.mjs
+# Expansion pages must be generated from the clean Vite shell. Core generation
+# rewrites index.html with homepage fallback content, so running expansion after
+# core generation would copy the homepage body into expansion routes.
 node scripts/build-seo-expansion.mjs
+node scripts/build-seo-pages.mjs
 node scripts/verify-seo-output.mjs
 
 echo "[build] Creating .vercel/output structure..."
