@@ -142,6 +142,7 @@ export function TemplateDrawer({ open, onClose }: Props) {
   };
 
   const selectCategory = (nextCategory?: string) => {
+    setSearch("");
     setCategory(nextCategory);
     setPage(1);
   };

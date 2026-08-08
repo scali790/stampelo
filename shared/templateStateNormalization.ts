@@ -12,6 +12,7 @@ import {
   ARC_VISUAL_SAFE_OCCUPANCY,
   CANVAS_CENTER,
   CANVAS_SIZE,
+  CENTER_TEXT_EDGE_CLEARANCE,
   getCenterTextVisualMetrics,
   getCenterTextLines,
   doesCenterTextFit,
@@ -20,6 +21,7 @@ import {
   fitArcText,
   fitArcTextRadiusToStamp,
   fitCenterTextElementFontSize,
+  getStampContentBounds,
   getTextOnPathVisualMetrics,
   getStampPlateGeometry,
   getStampSafeBounds,
@@ -38,12 +40,13 @@ const CENTER_TEXT_LINE_HEIGHT = 1.08;
 const CENTER_STACK_GAP_RATIO = 0.35;
 const MIN_CENTER_STACK_GAP = 2;
 const ARC_CENTER_CLEARANCE = 3;
-const ARC_MIN_OUTER_CLEARANCE = 1.5;
-const ARC_MIN_INNER_CLEARANCE = 2;
-const ARC_MAX_BAND_OCCUPANCY = 0.72;
-const CENTER_MAX_WIDTH_OCCUPANCY = 0.88;
-const CENTER_MAX_HEIGHT_OCCUPANCY = 0.82;
-const CENTER_MIN_EDGE_CLEARANCE = 1.5;
+const ARC_MIN_OUTER_CLEARANCE = 2.2;
+const ARC_MIN_INNER_CLEARANCE = 3;
+const ARC_MAX_BAND_OCCUPANCY = 0.6;
+const ARC_MIN_CENTER_REGION_CLEARANCE = 5.5;
+const CENTER_MAX_WIDTH_OCCUPANCY = 0.84;
+const CENTER_MAX_HEIGHT_OCCUPANCY = 0.78;
+const CENTER_MIN_EDGE_CLEARANCE = CENTER_TEXT_EDGE_CLEARANCE;
 
 export interface TemplateNormalizationOptions {
   repairGeometry?: boolean;
@@ -158,7 +161,22 @@ function normalizeElement(raw: any): StampElement | null {
 
 function wrapCenterText(text: string, lines: number): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 1 || lines <= 1 || lines > words.length) return [text];
+  if (lines <= 1) return [text];
+
+  if (words.length === 1) {
+    const token = words[0]!;
+    if (token.length < lines * 4) return [text];
+
+    const parts: string[] = [];
+    for (let idx = 0; idx < lines; idx++) {
+      const start = Math.floor((token.length * idx) / lines);
+      const end = Math.floor((token.length * (idx + 1)) / lines);
+      parts.push(token.slice(start, end));
+    }
+    return parts.filter(Boolean);
+  }
+
+  if (lines > words.length) return [text];
 
   let best: string[] = [text];
   let bestScore = Number.POSITIVE_INFINITY;
@@ -187,7 +205,7 @@ function wrapCenterText(text: string, lines: number): string[] {
 function fitWrappedCenterTextElementGeometry(el: CenterTextElement, stamp: Stamp): CenterTextElement {
   const candidates = [el];
 
-  if (!el.text.includes("\n") && el.text.includes(" ")) {
+  if (!el.text.includes("\n")) {
     for (const lineCount of [2, 3]) {
       const wrapped = wrapCenterText(el.text, lineCount);
       if (wrapped.length > 1) {
@@ -261,8 +279,11 @@ function adjustInnerFrameGeometry(stamp: Stamp): Stamp {
   if (arcElements.length === 0) return stamp;
 
   const targetOuterEdge = arcElements.reduce((minOuterEdge, element) => {
-    const textGeometry = getTextPathGeometry(element, stamp);
-    return Math.min(minOuterEdge, textGeometry.ry - ARC_MIN_INNER_CLEARANCE);
+    const metrics = getTextOnPathVisualMetrics(element, stamp, element.fontSize, element.letterSpacing, element.radius);
+    return Math.min(
+      minOuterEdge,
+      metrics.geometry.ry - element.fontSize * 0.16 - ARC_MIN_INNER_CLEARANCE
+    );
   }, Number.POSITIVE_INFINITY);
 
   if (!Number.isFinite(targetOuterEdge)) return stamp;
@@ -302,15 +323,15 @@ function getCenterTextBlockHeight(el: CenterTextElement, fontSize: number): numb
 }
 
 function getReservedCenterBand(stamp: Stamp): { top: number; bottom: number } {
-  const safeBounds = getStampSafeBounds(stamp);
-  let top = CANVAS_CENTER - safeBounds.safeRy;
-  let bottom = CANVAS_CENTER + safeBounds.safeRy;
+  const contentBounds = getStampContentBounds(stamp);
+  let top = CANVAS_CENTER - contentBounds.contentRy + CENTER_MIN_EDGE_CLEARANCE;
+  let bottom = CANVAS_CENTER + contentBounds.contentRy - CENTER_MIN_EDGE_CLEARANCE;
 
   for (const element of stamp.elements) {
     if (element.type !== "text-on-path" || element.visible === false || !element.text.trim()) continue;
 
     const geometry = getTextPathGeometry(element, stamp);
-    const inwardDepth = element.fontSize * 0.95 + ARC_CENTER_CLEARANCE;
+    const inwardDepth = element.fontSize * 0.75 + ARC_CENTER_CLEARANCE;
 
     if (element.inverse) {
       bottom = Math.min(bottom, CANVAS_CENTER + geometry.ry - inwardDepth);
@@ -369,11 +390,11 @@ function layoutCenterTextElementsGeometry(stamp: Stamp): Stamp {
   const { top, bottom } = getReservedCenterBand(stamp);
   const availableHeight = Math.max(bottom - top, 10);
   const requested = centerTextEntries.map((entry) => entry.element);
-  const requestedFontSizes = requested.map((element) => Math.max(Math.floor(element.fontSize), 5));
+  const requestedFontSizes = requested.map((element) => Math.max(Math.floor(element.fontSize), 3));
   let best = requested;
 
-  for (let scale = 1; scale >= 0.35; scale -= 0.05) {
-    const scaledFontSizes = requestedFontSizes.map((fontSize) => Math.max(5, Math.floor(fontSize * scale)));
+  for (let scale = 1; scale >= 0.2; scale -= 0.05) {
+    const scaledFontSizes = requestedFontSizes.map((fontSize) => Math.max(3, Math.floor(fontSize * scale)));
     const provisionalHeights = requested.map((element, idx) => getCenterTextBlockHeight(element, scaledFontSizes[idx]!));
     const provisionalGap = requested.length > 1
       ? Math.max(MIN_CENTER_STACK_GAP, Math.floor(Math.min(...scaledFontSizes) * CENTER_STACK_GAP_RATIO))
@@ -382,7 +403,7 @@ function layoutCenterTextElementsGeometry(stamp: Stamp): Stamp {
       provisionalHeights.reduce((sum, height) => sum + height, 0) +
       provisionalGap * Math.max(requested.length - 1, 0);
     const heightScale = provisionalHeight > availableHeight ? availableHeight / provisionalHeight : 1;
-    const candidateFontSizes = scaledFontSizes.map((fontSize) => Math.max(5, Math.floor(fontSize * heightScale)));
+    const candidateFontSizes = scaledFontSizes.map((fontSize) => Math.max(3, Math.floor(fontSize * heightScale)));
     const positioned = positionCenterTextElements(requested, candidateFontSizes, top, bottom);
     const fitted = positioned.map((element, idx) =>
       fitCenterTextElementGeometry({ ...element, fontSize: candidateFontSizes[idx]! }, stamp)
@@ -520,8 +541,9 @@ export function auditTemplateStampGeometry(stamp: Stamp): TemplateGeometryIssueS
         }
         if (
           arcMetrics.innerClearance !== null &&
-          (arcMetrics.innerClearance < ARC_MIN_INNER_CLEARANCE ||
-            (arcMetrics.bandOccupancy !== null && arcMetrics.bandOccupancy > ARC_MAX_BAND_OCCUPANCY))
+          (arcMetrics.innerClearance < ARC_MIN_INNER_CLEARANCE - 0.05 ||
+            (arcMetrics.bandOccupancy !== null && arcMetrics.bandOccupancy > ARC_MAX_BAND_OCCUPANCY) ||
+            (arcMetrics.centerRegionClearance !== null && arcMetrics.centerRegionClearance < ARC_MIN_CENTER_REGION_CLEARANCE))
         ) {
           issues.multiRingCollisionRisk = true;
         }

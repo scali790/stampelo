@@ -139,12 +139,13 @@ describe("Template normalization by shape", () => {
     const stamp = getNormalizedStamp("per-graduation-1");
     const issues = auditTemplateStampGeometry(stamp);
     const center = stamp.elements.find(
-      (element) => element.type === "center-text" && element.text === "CONGRATULATIONS"
+      (element) => element.type === "center-text" && element.text.includes("CONGR")
     );
 
     if (!center || center.type !== "center-text") throw new Error("Graduation template is missing center text");
 
-    expect(center.fontSize).toBe(3);
+    expect(center.text).toContain("\n");
+    expect(center.fontSize).toBeLessThanOrEqual(6);
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 

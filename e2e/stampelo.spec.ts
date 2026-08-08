@@ -253,4 +253,22 @@ test.describe("Template Library", () => {
     const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5);
   });
+
+  test("switching category clears search and shows matching templates", async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await openTemplateLibrary(page);
+
+    const search = page.getByPlaceholder("Search templates...");
+    await search.fill("Corporate Seal Blue");
+    await expect(page.getByText("Corporate Seal Blue")).toBeVisible();
+
+    const strip = page.getByTestId("template-category-strip");
+    const medicalButton = strip.getByRole("button", { name: "Medical" });
+    await medicalButton.scrollIntoViewIfNeeded();
+    await medicalButton.click();
+
+    await expect(search).toHaveValue("");
+    await expect(page.locator("p").filter({ hasText: /^Medical Practice$/ })).toBeVisible();
+    await expect(page.locator("p").filter({ hasText: /^Clinic$/ })).toBeVisible();
+  });
 });

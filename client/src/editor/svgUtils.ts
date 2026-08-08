@@ -14,13 +14,15 @@ const TEXT_PATH_SWEEP_DEGREES = 140;
 const INNER_SAFETY_MARGIN = 2.5;
 const ARC_ASCENDER_RATIO = 0.28;
 const ARC_EXTRA_GAP = 1.5;
-const ARC_INNER_BODY_RATIO = 0.08;
-const ARC_INNER_RING_CLEARANCE = 2;
+const ARC_INNER_BODY_RATIO = 0.16;
+const INNER_CONTENT_PADDING = 2.5;
+const ARC_RENDER_OUTER_CLEARANCE = 2.5;
 const ARIAL_BOLD_CHAR_WIDTH_RATIO = 0.58;
 const CENTER_TEXT_WIDTH_FACTOR = 0.86;
 const CENTER_TEXT_LINE_HEIGHT = 1.08;
-const CENTER_TEXT_VISUAL_WIDTH_OCCUPANCY = 0.88;
-const CENTER_TEXT_VISUAL_HEIGHT_OCCUPANCY = 0.82;
+const CENTER_TEXT_VISUAL_WIDTH_OCCUPANCY = 0.84;
+const CENTER_TEXT_VISUAL_HEIGHT_OCCUPANCY = 0.78;
+export const CENTER_TEXT_EDGE_CLEARANCE = 2.5;
 
 // ─── Shabby filter definition ─────────────────────────────────────────────────
 export function getShabbyFilter(id: string): string {
@@ -103,9 +105,20 @@ export interface StampSafeBounds extends StampPlateGeometry {
 }
 
 interface FrameAxisBand {
+  radiusPct: number;
+  strokeWidth: number;
+  radiusX: number;
   radiusY: number;
+  outerEdgeX: number;
   outerEdgeY: number;
+  innerEdgeX: number;
   innerEdgeY: number;
+}
+
+export interface StampContentBounds extends StampPlateGeometry {
+  contentRx: number;
+  contentRy: number;
+  source: "outer-safe" | "inner-frame";
 }
 
 function getOuterFrame(stamp: Stamp): FrameElement | undefined {
@@ -178,13 +191,22 @@ function getVisibleFrameAxisBands(stamp: Stamp): FrameAxisBand[] {
   return stamp.elements
     .filter((el): el is FrameElement => el.type === "frame" && el.visible !== false)
     .map((frame) => {
+      const radiusX =
+        stamp.shape === "oval" || stamp.shape === "rectangular"
+          ? (frame.radius / 100) * geometry.maxRx
+          : (frame.radius / 100) * geometry.maxRx;
       const radiusY =
         stamp.shape === "oval" || stamp.shape === "rectangular"
           ? (frame.radius / 100) * geometry.maxRy
           : (frame.radius / 100) * geometry.maxRx;
       return {
+        radiusPct: frame.radius,
+        strokeWidth: frame.strokeWidth,
+        radiusX,
         radiusY,
+        outerEdgeX: radiusX + frame.strokeWidth / 2,
         outerEdgeY: radiusY + frame.strokeWidth / 2,
+        innerEdgeX: radiusX - frame.strokeWidth / 2,
         innerEdgeY: radiusY - frame.strokeWidth / 2,
       };
     })
@@ -201,6 +223,28 @@ function getOuterFrameInnerEdge(stamp: Stamp): number {
   const [outerFrame] = getVisibleFrameAxisBands(stamp);
   if (outerFrame) return outerFrame.innerEdgeY;
   return getStampSafeBounds(stamp).safeRy + INNER_SAFETY_MARGIN;
+}
+
+export function getStampContentBounds(stamp: Stamp): StampContentBounds {
+  const geometry = getStampPlateGeometry(stamp);
+  const safeBounds = getStampSafeBounds(stamp);
+  const [, innerFrame] = getVisibleFrameAxisBands(stamp);
+
+  if (!innerFrame) {
+    return {
+      ...geometry,
+      contentRx: safeBounds.safeRx,
+      contentRy: safeBounds.safeRy,
+      source: "outer-safe",
+    };
+  }
+
+  return {
+    ...geometry,
+    contentRx: Math.max(innerFrame.innerEdgeX - INNER_CONTENT_PADDING, 1),
+    contentRy: Math.max(innerFrame.innerEdgeY - INNER_CONTENT_PADDING, 1),
+    source: "inner-frame",
+  };
 }
 
 // ─── Frame element renderer ───────────────────────────────────────────────────
@@ -388,9 +432,9 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
 // Returns { fontSize, letterSpacing } — both may be reduced from the input values.
 
 const ARC_USABLE_FRACTION = 0.88;   // keep more whitespace near the arc endpoints
-export const ARC_VISUAL_SAFE_OCCUPANCY = 0.78;
+export const ARC_VISUAL_SAFE_OCCUPANCY = 0.68;
 const ARC_CHAR_WIDTH_RATIO = 0.58;  // Arial Bold average char width / fontSize
-const MIN_FONT_SIZE_ARC = 5;        // minimum readable font size on arc
+const MIN_FONT_SIZE_ARC = 4;        // minimum readable font size on arc
 const MIN_LETTER_SPACING = 85;      // avoid overly aggressive glyph compression
 
 export function fitArcText(
@@ -447,6 +491,7 @@ export interface TextOnPathVisualMetrics {
   innerClearance: number | null;
   bandWidth: number | null;
   bandOccupancy: number | null;
+  centerRegionClearance: number | null;
 }
 
 // ─── Center text renderer ─────────────────────────────────────────────────────
@@ -491,16 +536,26 @@ export function doesCenterTextFit(
   if (lines.length === 0) return true;
 
   const safeBounds = getStampSafeBounds(stamp);
+  const contentBounds = getStampContentBounds(stamp);
   const x = (el.x / 100) * CANVAS_SIZE;
   const y = (el.y / 100) * CANVAS_SIZE;
   const lineYs = getCenterTextLineYs(y, fontSize, lines.length);
   const lineHeight = fontSize * CENTER_TEXT_LINE_HEIGHT;
-  const availableHeight = safeBounds.safeRy * 2;
+  const availableHeight = contentBounds.contentRy * 2;
   const blockTop = lineYs[0]! - fontSize * 0.6;
   const blockBottom = lineYs[lineYs.length - 1]! + fontSize * 0.6;
   const blockHeight = blockBottom - blockTop;
+  const minTop = CANVAS_CENTER - contentBounds.contentRy;
+  const maxBottom = CANVAS_CENTER + contentBounds.contentRy;
 
-  if (blockTop < CANVAS_CENTER - safeBounds.safeRy || blockBottom > CANVAS_CENTER + safeBounds.safeRy) {
+  if (blockTop < minTop || blockBottom > maxBottom) {
+    return false;
+  }
+
+  if (
+    stamp.shape !== "rectangular" &&
+    (blockTop - minTop < CENTER_TEXT_EDGE_CLEARANCE || maxBottom - blockBottom < CENTER_TEXT_EDGE_CLEARANCE)
+  ) {
     return false;
   }
 
@@ -511,10 +566,14 @@ export function doesCenterTextFit(
   return lines.every((line, idx) => {
     const width = line.length * fontSize * ARIAL_BOLD_CHAR_WIDTH_RATIO;
     const halfWidth =
-      getShapeHalfWidthAtY(stamp, safeBounds, lineYs[idx]!) *
+      getShapeHalfWidthAtY(
+        stamp,
+        { ...safeBounds, safeRx: contentBounds.contentRx, safeRy: contentBounds.contentRy },
+        lineYs[idx]!
+      ) *
       CENTER_TEXT_WIDTH_FACTOR *
       CENTER_TEXT_VISUAL_WIDTH_OCCUPANCY;
-    return Math.abs(x - CANVAS_CENTER) + width / 2 <= halfWidth && lineHeight <= safeBounds.safeRy * 2;
+    return Math.abs(x - CANVAS_CENTER) + width / 2 <= halfWidth && lineHeight <= contentBounds.contentRy * 2;
   });
 }
 
@@ -541,6 +600,7 @@ export function getCenterTextVisualMetrics(
   }
 
   const safeBounds = getStampSafeBounds(stamp);
+  const contentBounds = getStampContentBounds(stamp);
   const x = (el.x / 100) * CANVAS_SIZE;
   const y = (el.y / 100) * CANVAS_SIZE;
   const lineYs = getCenterTextLineYs(y, fontSize, lines.length);
@@ -550,15 +610,22 @@ export function getCenterTextVisualMetrics(
 
   const widthOccupancies = lines.map((line, idx) => {
     const width = line.length * fontSize * ARIAL_BOLD_CHAR_WIDTH_RATIO;
-    const safeWidth = getShapeHalfWidthAtY(stamp, safeBounds, lineYs[idx]!) * 2 * CENTER_TEXT_WIDTH_FACTOR;
+    const safeWidth =
+      getShapeHalfWidthAtY(
+        stamp,
+        { ...safeBounds, safeRx: contentBounds.contentRx, safeRy: contentBounds.contentRy },
+        lineYs[idx]!
+      ) *
+      2 *
+      CENTER_TEXT_WIDTH_FACTOR;
     return safeWidth > 0 ? (Math.abs(x - CANVAS_CENTER) * 2 + width) / safeWidth : Number.POSITIVE_INFINITY;
   });
 
   return {
     maxWidthOccupancy: Math.max(...widthOccupancies),
-    heightOccupancy: blockHeight / Math.max(safeBounds.safeRy * 2, 1),
-    topClearance: blockTop - (CANVAS_CENTER - safeBounds.safeRy),
-    bottomClearance: CANVAS_CENTER + safeBounds.safeRy - blockBottom,
+    heightOccupancy: blockHeight / Math.max(contentBounds.contentRy * 2, 1),
+    topClearance: blockTop - (CANVAS_CENTER - contentBounds.contentRy),
+    bottomClearance: CANVAS_CENTER + contentBounds.contentRy - blockBottom,
   };
 }
 
@@ -739,7 +806,18 @@ export function fitArcTextRadiusToStamp(
   const geometry = getStampPlateGeometry(stamp);
   const baseRadius = geometry.maxRy;
   const outerFrameInnerEdge = getOuterFrameInnerEdge(stamp);
-  const radiusSvg = Math.max(outerFrameInnerEdge - fontSize * ARC_ASCENDER_RATIO - ARC_EXTRA_GAP, 1);
+  const innerFrameOuterEdge = getNearestInnerFrameOuterEdge(stamp);
+  const outerLimitedRadius = outerFrameInnerEdge - fontSize * ARC_ASCENDER_RATIO - ARC_RENDER_OUTER_CLEARANCE;
+  if (innerFrameOuterEdge === null) {
+    const radiusSvg = Math.max(outerLimitedRadius, 1);
+    return {
+      radiusSvg,
+      radiusPct: Math.floor((radiusSvg / baseRadius) * 100),
+    };
+  }
+
+  const innerLimitedRadius = innerFrameOuterEdge + fontSize * ARC_INNER_BODY_RATIO + 3;
+  const radiusSvg = Math.max(Math.min(outerLimitedRadius, Math.max(innerLimitedRadius, 1)), 1);
   return {
     radiusSvg,
     radiusPct: Math.floor((radiusSvg / baseRadius) * 100),
@@ -758,9 +836,13 @@ export function getTextOnPathVisualMetrics(
   const outerFrameInnerEdge = getOuterFrameInnerEdge(stamp);
   const innerFrameOuterEdge = getNearestInnerFrameOuterEdge(stamp);
   const outerClearance = outerFrameInnerEdge - (geometry.ry + fontSize * ARC_ASCENDER_RATIO);
-  const innerClearance = innerFrameOuterEdge === null ? null : geometry.ry - innerFrameOuterEdge;
+  const innerClearance =
+    innerFrameOuterEdge === null ? null : geometry.ry - fontSize * ARC_INNER_BODY_RATIO - innerFrameOuterEdge;
   const bandWidth = innerFrameOuterEdge === null ? null : outerFrameInnerEdge - innerFrameOuterEdge;
   const textBandThickness = fontSize * (ARC_ASCENDER_RATIO + ARC_INNER_BODY_RATIO);
+  const contentBounds = getStampContentBounds(stamp);
+  const centerRegionClearance =
+    contentBounds.source === "inner-frame" ? geometry.ry - contentBounds.contentRy : null;
 
   return {
     geometry,
@@ -770,6 +852,7 @@ export function getTextOnPathVisualMetrics(
     innerClearance,
     bandWidth,
     bandOccupancy: bandWidth && bandWidth > 0 ? textBandThickness / bandWidth : null,
+    centerRegionClearance,
   };
 }
 
