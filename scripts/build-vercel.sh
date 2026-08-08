@@ -1,7 +1,4 @@
 #!/bin/bash
-# Vercel Build Output API script
-# Source: src/server-entry.ts (maintainable)
-# Generated: .vercel/output/functions/api/server.func/index.mjs (gitignored)
 set -e
 
 echo "[build] Building Vite frontend..."
@@ -9,21 +6,18 @@ npx vite build
 
 echo "[build] Generating route-aware SEO HTML..."
 node scripts/build-seo-pages.mjs
+node scripts/build-seo-expansion.mjs
 node scripts/verify-seo-output.mjs
 
 echo "[build] Creating .vercel/output structure..."
 rm -rf .vercel/output
-mkdir -p .vercel/output/static
-mkdir -p .vercel/output/functions/api/server.func
+mkdir -p .vercel/output/static .vercel/output/functions/api/server.func
 cp -r dist/public/. .vercel/output/static/
 
-echo "[build] Bundling src/server-entry.ts with esbuild..."
 npx esbuild src/server-entry.ts --platform=node --format=esm --bundle --external:@resvg/resvg-wasm --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);" --outfile=.vercel/output/functions/api/server.func/index.mjs
-
 cat > .vercel/output/functions/api/server.func/.vc-config.json << 'VCEOF'
 {"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true,"maxDuration":60}
 VCEOF
-
 cat > .vercel/output/config.json << 'CFGEOF'
 {
   "version": 3,
@@ -42,10 +36,18 @@ cat > .vercel/output/config.json << 'CFGEOF'
     { "src": "^/templates/business-stamps/?$", "dest": "/templates-business-stamps.html" },
     { "src": "^/templates/notary-stamps/?$", "dest": "/templates-notary-stamps.html" },
     { "src": "^/templates/medical-stamps/?$", "dest": "/templates-medical-stamps.html" },
+    { "src": "^/templates/status-stamps/?$", "dest": "/templates-status-stamps.html" },
+    { "src": "^/templates/approved-stamp/?$", "dest": "/templates-approved-stamp.html" },
+    { "src": "^/templates/received-stamp/?$", "dest": "/templates-received-stamp.html" },
+    { "src": "^/templates/paid-stamp/?$", "dest": "/templates-paid-stamp.html" },
+    { "src": "^/templates/confidential-stamp/?$", "dest": "/templates-confidential-stamp.html" },
     { "src": "^/guides/what-is-a-digital-stamp/?$", "dest": "/guides-what-is-a-digital-stamp.html" },
     { "src": "^/guides/how-to-add-a-stamp-to-a-pdf/?$", "dest": "/guides-how-to-add-a-stamp-to-a-pdf.html" },
     { "src": "^/guides/png-vs-svg-vs-pdf-stamp/?$", "dest": "/guides-png-vs-svg-vs-pdf-stamp.html" },
     { "src": "^/guides/company-stamp-requirements/?$", "dest": "/guides-company-stamp-requirements.html" },
+    { "src": "^/guides/digital-vs-rubber-stamp/?$", "dest": "/guides-digital-vs-rubber-stamp.html" },
+    { "src": "^/guides/round-vs-rectangular-stamp/?$", "dest": "/guides-round-vs-rectangular-stamp.html" },
+    { "src": "^/guides/transparent-png-stamp/?$", "dest": "/guides-transparent-png-stamp.html" },
     { "src": "^/faq/?$", "dest": "/faq.html" },
     { "src": "^/privacy/?$", "dest": "/privacy.html" },
     { "src": "^/terms/?$", "dest": "/terms.html" },
@@ -58,16 +60,7 @@ cat > .vercel/output/config.json << 'CFGEOF'
   ]
 }
 CFGEOF
-
 bash scripts/verify-bundle.sh .vercel/output/functions/api/server.func/index.mjs
-
-echo "[build] Copying @resvg/resvg-wasm..."
 RESVG_DIR="node_modules/@resvg/resvg-wasm"
-if [ -d "$RESVG_DIR" ]; then
-  mkdir -p .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm
-  cp -r "$RESVG_DIR/." .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm/
-else
-  echo "[build] WARNING: @resvg/resvg-wasm not found — PDF stamp export will fail"
-fi
-
+if [ -d "$RESVG_DIR" ]; then mkdir -p .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm; cp -r "$RESVG_DIR/." .vercel/output/functions/api/server.func/node_modules/@resvg/resvg-wasm/; else echo "[build] WARNING: @resvg/resvg-wasm not found"; fi
 echo "[build] Done."
