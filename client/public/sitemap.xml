@@ -9,10 +9,18 @@
   <url><loc>https://www.stampelo.com/templates/business-stamps</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.stampelo.com/templates/notary-stamps</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.stampelo.com/templates/medical-stamps</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/templates/status-stamps</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.stampelo.com/templates/approved-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/templates/received-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/templates/paid-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/templates/confidential-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.stampelo.com/guides/what-is-a-digital-stamp</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.stampelo.com/guides/how-to-add-a-stamp-to-a-pdf</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.stampelo.com/guides/png-vs-svg-vs-pdf-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.stampelo.com/guides/company-stamp-requirements</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/guides/digital-vs-rubber-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/guides/round-vs-rectangular-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.stampelo.com/guides/transparent-png-stamp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.stampelo.com/faq</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.stampelo.com/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://www.stampelo.com/terms</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
