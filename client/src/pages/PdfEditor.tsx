@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Download, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { ArrowLeft, Upload, Download, ChevronLeft, ChevronRight, Pencil, RotateCw } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { useEditorStore } from "@/editor/store";
@@ -11,7 +11,7 @@ import { renderStampSvg, CANVAS_SIZE, CANVAS_CENTER } from "@/editor/svgUtils";
 import { trpc } from "@/lib/trpc";
 import type { Stamp } from "@/editor/types";
 
-// ─── Plate bounds (same logic as StampCanvas) ────────────────────────────────
+// ─── Plate bounds (same logic as StampCanvas) ─────────────────────────────────
 function getPlateBounds(stamp: Stamp) {
   const maxR  = (stamp.widthMm  / 150) * (CANVAS_SIZE / 2) * 0.95;
   const maxRy = (stamp.heightMm / 150) * (CANVAS_SIZE / 2) * 0.95;
@@ -21,7 +21,6 @@ function getPlateBounds(stamp: Stamp) {
   return { vbX: CANVAS_CENTER - maxR, vbY: CANVAS_CENTER - maxRy, vbW: maxR * 2, vbH: maxRy * 2 };
 }
 
-// Resize SVG string to given px dimensions using the cropped plate viewBox
 function resizeStampSvg(stamp: Stamp, sizePx: number): string {
   const raw = renderStampSvg(stamp);
   const b = getPlateBounds(stamp);
@@ -31,11 +30,26 @@ function resizeStampSvg(stamp: Stamp, sizePx: number): string {
 }
 
 interface StampPlacement {
-  x: number;
-  y: number;
-  scale: number;
-  rotation: number;
+  x: number;      // % of page width
+  y: number;      // % of page height
+  scale: number;  // 0.1 to 5
+  rotation: number; // 0-360 deg
 }
+
+type DragMode = "move" | "resize-nw" | "resize-ne" | "resize-se" | "resize-sw"
+              | "resize-n" | "resize-s" | "resize-e" | "resize-w" | "rotate" | null;
+
+// Handle definitions: position relative to stamp center (in stamp-local coords)
+const HANDLES: { id: DragMode; cx: number; cy: number; cursor: string }[] = [
+  { id: "resize-nw", cx: -1, cy: -1, cursor: "nw-resize" },
+  { id: "resize-n",  cx:  0, cy: -1, cursor: "n-resize"  },
+  { id: "resize-ne", cx:  1, cy: -1, cursor: "ne-resize"  },
+  { id: "resize-e",  cx:  1, cy:  0, cursor: "e-resize"   },
+  { id: "resize-se", cx:  1, cy:  1, cursor: "se-resize"  },
+  { id: "resize-s",  cx:  0, cy:  1, cursor: "s-resize"   },
+  { id: "resize-sw", cx: -1, cy:  1, cursor: "sw-resize"  },
+  { id: "resize-w",  cx: -1, cy:  0, cursor: "w-resize"   },
+];
 
 export default function PdfEditor() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -45,17 +59,17 @@ export default function PdfEditor() {
   const [pageCanvas, setPageCanvas] = useState<string | null>(null);
   const [placement, setPlacement] = useState<StampPlacement>({ x: 50, y: 50, scale: 1, rotation: 0 });
   const [pdfKey, setPdfKey] = useState<string | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [isStamping, setIsStamping] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragMode, setDragMode] = useState<DragMode>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scale: 1, rotation: 0, stampX: 0, stampY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reactive selector — re-renders when store hydrates from localStorage
   const stamp = useEditorStore((s) => s.stamps.find((st) => st.id === s.activeStampId));
 
   const uploadPdf = trpc.pdfEditor.uploadPdf.useMutation({
-    onSuccess: (data) => { setPdfKey(data.key); toast.success("PDF uploaded successfully"); },
+    onSuccess: (data: any) => { setPdfKey(data.key); setPdfBlobUrl(data.url ?? null); toast.success("PDF uploaded successfully"); },
     onError: () => toast.error("Failed to upload PDF"),
   });
 
@@ -68,23 +82,10 @@ export default function PdfEditor() {
     onError: () => { setIsStamping(false); toast.error("Failed to generate stamped PDF"); },
   });
 
-  const loadPdf = useCallback(async (file: File) => {
-    try {
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-      const arrayBuffer = await file.arrayBuffer();
-      const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      setPdfDoc(doc);
-      setTotalPages(doc.numPages);
-      setCurrentPage(0);
-    } catch (err) {
-      toast.error("Failed to load PDF. Please try a different file.");
-    }
-  }, []);
-
   const renderPage = useCallback(async (doc: any, pageIdx: number) => {
     if (!doc) return;
     try {
+      const pdfjsLib = await import("pdfjs-dist");
       const page = await doc.getPage(pageIdx + 1);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement("canvas");
@@ -104,29 +105,24 @@ export default function PdfEditor() {
     if (!file.name.endsWith(".pdf")) { toast.error("Please upload a PDF file"); return; }
     if (file.size > 20 * 1024 * 1024) { toast.error("File must be smaller than 20 MB"); return; }
     setPdfFile(file);
-    const doc = await (async () => {
-      try {
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-        const arrayBuffer = await file.arrayBuffer();
-        const d = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        setPdfDoc(d);
-        setTotalPages(d.numPages);
-        setCurrentPage(0);
-        renderPage(d, 0);
-        return d;
-      } catch {
-        toast.error("Failed to load PDF. Please try a different file.");
-        return null;
-      }
-    })();
-    if (!doc) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = (ev.target?.result as string).split(",")[1] ?? "";
-      uploadPdf.mutate({ pdfBase64: base64, filename: file.name });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      const arrayBuffer = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      setPdfDoc(doc);
+      setTotalPages(doc.numPages);
+      setCurrentPage(0);
+      renderPage(doc, 0);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = (ev.target?.result as string).split(",")[1] ?? "";
+        uploadPdf.mutate({ pdfBase64: base64, filename: file.name });
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast.error("Failed to load PDF. Please try a different file.");
+    }
   };
 
   const goToPage = (idx: number) => {
@@ -134,32 +130,69 @@ export default function PdfEditor() {
     renderPage(pdfDoc, idx);
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // ─── Unified pointer event handlers ─────────────────────────────────────────
+  const startDrag = useCallback((mode: DragMode, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+    setDragMode(mode);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      scale: placement.scale,
+      rotation: placement.rotation,
+      stampX: placement.x,
+      stampY: placement.y,
+    });
+  }, [placement]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
+    if (!dragMode || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dx = ((e.clientX - dragStart.x) / rect.width) * 100;
-    const dy = ((e.clientY - dragStart.y) / rect.height) * 100;
-    setPlacement((p) => ({
-      ...p,
-      x: Math.max(0, Math.min(100, p.x + dx)),
-      y: Math.max(0, Math.min(100, p.y + dy)),
-    }));
-    setDragStart({ x: e.clientX, y: e.clientY });
-  }, [isDragging, dragStart]);
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
 
-  const handleMouseUp = () => setIsDragging(false);
+    if (dragMode === "move") {
+      const dxPct = (dx / rect.width) * 100;
+      const dyPct = (dy / rect.height) * 100;
+      setPlacement((p) => ({
+        ...p,
+        x: Math.max(0, Math.min(100, dragStart.stampX + dxPct)),
+        y: Math.max(0, Math.min(100, dragStart.stampY + dyPct)),
+      }));
+      return;
+    }
 
-  // Stamp display size in px on the PDF canvas overlay
+    if (dragMode === "rotate") {
+      // Compute angle from stamp center to current mouse position
+      const stampCx = rect.left + (dragStart.stampX / 100) * rect.width;
+      const stampCy = rect.top + (dragStart.stampY / 100) * rect.height;
+      const angle = Math.atan2(e.clientY - stampCy, e.clientX - stampCx) * (180 / Math.PI) + 90;
+      setPlacement((p) => ({ ...p, rotation: ((angle % 360) + 360) % 360 }));
+      return;
+    }
+
+    // Resize: use the larger of dx/dy to scale uniformly
+    if (dragMode.startsWith("resize")) {
+      const stampSizePx = dragStart.scale * (stamp?.widthMm ?? 38) / 150 * 200;
+      // Determine which axis drives the resize based on handle direction
+      let delta = 0;
+      if (dragMode === "resize-se" || dragMode === "resize-e" || dragMode === "resize-s") delta = Math.max(dx, dy);
+      else if (dragMode === "resize-nw" || dragMode === "resize-w" || dragMode === "resize-n") delta = -Math.min(dx, dy);
+      else if (dragMode === "resize-ne") delta = Math.max(-dy, dx);
+      else if (dragMode === "resize-sw") delta = Math.max(dy, -dx);
+      const newSizePx = Math.max(30, stampSizePx + delta * 1.5);
+      const newScale = (newSizePx / ((stamp?.widthMm ?? 38) / 150 * 200));
+      setPlacement((p) => ({ ...p, scale: Math.max(0.1, Math.min(5, newScale)) }));
+    }
+  }, [dragMode, dragStart, stamp]);
+
+  const handleMouseUp = useCallback(() => setDragMode(null), []);
+
+  // Stamp display size
   const stampDisplayPx = stamp ? Math.round((stamp.widthMm / 150) * 200 * placement.scale) : 80;
   const stampSvgStr = stamp ? resizeStampSvg(stamp, stampDisplayPx) : null;
 
-  // ── No-stamp gate ──────────────────────────────────────────────────────────
+  // ─── No-stamp gate ───────────────────────────────────────────────────────────
   if (!stamp) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -202,6 +235,9 @@ export default function PdfEditor() {
     );
   }
 
+  const HANDLE_SIZE = 10; // px
+  const ROTATION_OFFSET = 28; // px below stamp
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex items-center gap-3 px-4 py-2 border-b">
@@ -211,9 +247,7 @@ export default function PdfEditor() {
           </Button>
         </Link>
         <span className="text-sm font-semibold">PDF Stamp Editor</span>
-        <span className="text-xs text-muted-foreground ml-auto">
-          Stamp: <span className="font-medium text-foreground">{stamp.widthMm}mm {stamp.shape}</span>
-        </span>
+        {stamp && <span className="text-xs text-muted-foreground ml-2">Stamp: {stamp.widthMm}mm {stamp.shape}</span>}
       </header>
 
       <div className="flex flex-1 min-h-0">
@@ -239,15 +273,15 @@ export default function PdfEditor() {
                 <CardContent className="space-y-3">
                   <div>
                     <Label className="text-xs">Scale: {placement.scale.toFixed(1)}x</Label>
-                    <Slider min={0.1} max={3} step={0.1} value={[placement.scale]}
+                    <Slider min={0.1} max={5} step={0.05} value={[placement.scale]}
                       onValueChange={([v]) => setPlacement((p) => ({ ...p, scale: v! }))} />
                   </div>
                   <div>
-                    <Label className="text-xs">Rotation: {placement.rotation}°</Label>
+                    <Label className="text-xs flex items-center gap-1"><RotateCw className="w-3 h-3" /> Rotation: {Math.round(placement.rotation)}°</Label>
                     <Slider min={0} max={360} step={1} value={[placement.rotation]}
                       onValueChange={([v]) => setPlacement((p) => ({ ...p, rotation: v! }))} />
                   </div>
-                  <p className="text-xs text-muted-foreground">Drag the stamp on the page to reposition it.</p>
+                  <p className="text-xs text-muted-foreground">Drag the stamp to move. Use corner handles to resize. Use the rotation handle below the stamp to rotate.</p>
                 </CardContent>
               </Card>
 
@@ -278,6 +312,7 @@ export default function PdfEditor() {
                     setIsStamping(true);
                     stampPdfMutation.mutate({
                       pdfKey,
+                      ...(pdfBlobUrl ? { pdfUrl: pdfBlobUrl } : {}),
                       stampSvg: renderStampSvg(stamp),
                       placement: {
                         xPct: placement.x,
@@ -321,10 +356,11 @@ export default function PdfEditor() {
                 </Button>
               </div>
 
+              {/* PDF page + stamp overlay */}
               <div
                 ref={containerRef}
                 className="relative shadow-2xl select-none"
-                style={{ cursor: isDragging ? "grabbing" : "default" }}
+                style={{ cursor: dragMode === "move" ? "grabbing" : "default" }}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
@@ -332,6 +368,8 @@ export default function PdfEditor() {
                 {pageCanvas && (
                   <img src={pageCanvas} alt="PDF page" className="max-w-full block" draggable={false} />
                 )}
+
+                {/* Stamp + selection UI */}
                 {stampSvgStr && (
                   <div
                     className="absolute"
@@ -341,13 +379,88 @@ export default function PdfEditor() {
                       transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)`,
                       width: stampDisplayPx,
                       height: stampDisplayPx,
-                      opacity: 0.85,
-                      cursor: "grab",
-                      pointerEvents: "all",
+                      // Extra space for handles outside the stamp bounds
+                      overflow: "visible",
                     }}
-                    onMouseDown={handleMouseDown}
-                    dangerouslySetInnerHTML={{ __html: stampSvgStr }}
-                  />
+                  >
+                    {/* Stamp SVG — drag to move */}
+                    <div
+                      style={{
+                        width: stampDisplayPx,
+                        height: stampDisplayPx,
+                        opacity: 0.85,
+                        cursor: dragMode === "move" ? "grabbing" : "grab",
+                        position: "relative",
+                      }}
+                      onMouseDown={(e) => startDrag("move", e)}
+                      dangerouslySetInnerHTML={{ __html: stampSvgStr }}
+                    />
+
+                    {/* Selection border */}
+                    <div style={{
+                      position: "absolute",
+                      inset: -6,
+                      border: "1.5px dashed #3b82f6",
+                      borderRadius: 3,
+                      pointerEvents: "none",
+                    }} />
+
+                    {/* Resize handles */}
+                    {HANDLES.map((h) => (
+                      <div
+                        key={h.id as string}
+                        onMouseDown={(e) => startDrag(h.id, e)}
+                        style={{
+                          position: "absolute",
+                          width: HANDLE_SIZE,
+                          height: HANDLE_SIZE,
+                          background: "white",
+                          border: "1.5px solid #3b82f6",
+                          borderRadius: 2,
+                          cursor: h.cursor,
+                          // Position: cx=-1 → left edge, cx=0 → center, cx=1 → right edge
+                          left: h.cx === -1 ? -HANDLE_SIZE / 2 - 6 : h.cx === 0 ? stampDisplayPx / 2 - HANDLE_SIZE / 2 : stampDisplayPx + 6 - HANDLE_SIZE / 2,
+                          top:  h.cy === -1 ? -HANDLE_SIZE / 2 - 6 : h.cy === 0 ? stampDisplayPx / 2 - HANDLE_SIZE / 2 : stampDisplayPx + 6 - HANDLE_SIZE / 2,
+                          zIndex: 10,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                        }}
+                      />
+                    ))}
+
+                    {/* Rotation handle — below stamp */}
+                    {/* Connector line */}
+                    <div style={{
+                      position: "absolute",
+                      left: stampDisplayPx / 2 - 0.5,
+                      top: stampDisplayPx + 6,
+                      width: 1,
+                      height: ROTATION_OFFSET - 6,
+                      background: "#3b82f6",
+                      pointerEvents: "none",
+                    }} />
+                    <div
+                      onMouseDown={(e) => startDrag("rotate", e)}
+                      title="Drag to rotate"
+                      style={{
+                        position: "absolute",
+                        width: HANDLE_SIZE + 2,
+                        height: HANDLE_SIZE + 2,
+                        background: "white",
+                        border: "1.5px solid #3b82f6",
+                        borderRadius: "50%",
+                        cursor: "crosshair",
+                        left: stampDisplayPx / 2 - (HANDLE_SIZE + 2) / 2,
+                        top: stampDisplayPx + ROTATION_OFFSET,
+                        zIndex: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <RotateCw style={{ width: 7, height: 7, color: "#3b82f6" }} />
+                    </div>
+                  </div>
                 )}
               </div>
             </>
