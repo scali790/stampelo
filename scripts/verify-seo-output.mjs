@@ -16,6 +16,20 @@ const homepage = read("index.html");
 assert(homepage.includes("What is Stampelo") || homepage.includes("Online Digital Stamp"), "homepage exposes extractable entity content");
 assert(!homepage.toLowerCase().includes("join thousands"), "homepage contains no unsupported customer-volume claim");
 assert(!homepage.includes("%VITE_ANALYTICS_"), "homepage has no unresolved analytics placeholders");
+const uniqueBodyChecks = [
+  ["templates-approved-stamp.html","<h1>Approved Stamp Template</h1>"],
+  ["templates-received-stamp.html","<h1>Received Stamp Template</h1>"],
+  ["templates-paid-stamp.html","<h1>Paid Stamp Template</h1>"],
+  ["templates-confidential-stamp.html","<h1>Confidential Stamp Template</h1>"],
+  ["guides-digital-vs-rubber-stamp.html","<h1>Digital Stamp vs Rubber Stamp</h1>"],
+  ["guides-round-vs-rectangular-stamp.html","<h1>Round vs Rectangular vs Oval Stamp Designs</h1>"],
+  ["guides-transparent-png-stamp.html","<h1>How to Create a Transparent PNG Stamp</h1>"],
+];
+for (const [file, marker] of uniqueBodyChecks) {
+  const html = read(file);
+  assert(html.includes(marker), `${file} contains route-specific body`);
+  assert(!html.includes('<main data-seo-shell="home">'), `${file} does not duplicate homepage body`);
+}
 const robots = read("robots.txt");
 for (const route of ["/api/","/account","/admin","/download"]) assert(robots.includes(`Disallow: ${route}`), `robots disallows ${route}`);
 assert(robots.includes("Sitemap: https://www.stampelo.com/sitemap.xml"), "robots references canonical sitemap");
