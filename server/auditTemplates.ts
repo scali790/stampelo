@@ -83,8 +83,8 @@ async function main() {
     exact.set(exactKey, [...(exact.get(exactKey) ?? []), row.name]);
   }
 
-  const layoutClusters = [...layouts.values()].sort((a, b) => b.length - a.length);
-  const exactDuplicates = [...exact.values()].filter(v => v.length > 1).sort((a, b) => b.length - a.length);
+  const layoutClusters = Array.from(layouts.values()).sort((a, b) => b.length - a.length);
+  const exactDuplicates = Array.from(exact.values()).filter(v => v.length > 1).sort((a, b) => b.length - a.length);
 
   console.log(JSON.stringify({
     activeTemplates: rows.length,
@@ -97,8 +97,8 @@ async function main() {
       noVisibleText,
     },
     categoryCount: categories.size,
-    categories: Object.fromEntries([...categories.entries()].sort((a, b) => b[1] - a[1])),
-    shapes: Object.fromEntries([...shapes.entries()].sort((a, b) => b[1] - a[1])),
+    categories: Object.fromEntries(Array.from(categories.entries()).sort((a, b) => b[1] - a[1])),
+    shapes: Object.fromEntries(Array.from(shapes.entries()).sort((a, b) => b[1] - a[1])),
     distinctStructuralLayouts: layouts.size,
     largestStructuralLayoutClusters: layoutClusters.slice(0, 12).map(names => ({ count: names.length, examples: names.slice(0, 8) })),
     exactDuplicateGroups: exactDuplicates.length,
