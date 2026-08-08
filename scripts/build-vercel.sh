@@ -17,7 +17,7 @@ rm -rf .vercel/output
 mkdir -p .vercel/output/static .vercel/output/functions/api/server.func
 cp -r dist/public/. .vercel/output/static/
 
-npx esbuild src/server-entry.ts --platform=node --format=esm --bundle --external:@resvg/resvg-wasm --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);" --outfile=.vercel/output/functions/api/server.func/index.mjs
+npx esbuild src/server-entry.ts --platform=node --format=esm --bundle --external:@resvg/resvg-wasm --outfile=.vercel/output/functions/api/server.func/index.mjs
 cat > .vercel/output/functions/api/server.func/.vc-config.json << 'VCEOF'
 {"runtime":"nodejs20.x","handler":"index.mjs","launcherType":"Nodejs","shouldAddHelpers":true,"maxDuration":60}
 VCEOF
