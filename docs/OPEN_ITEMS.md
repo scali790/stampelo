@@ -49,3 +49,6 @@
 - [x] **PDF editor export 500 error** — RESOLVED 2026-08-08.  was returning a relative path instead of a full URL. Fixed:  uses  for actual URL;  returns full blob URL;  uses it directly. Commit: bb63921.
 - [x] **PDF editor stamp display too small** — RESOLVED 2026-08-08. Stamp overlay now uses  with cropped viewBox, proportional to page width. Commit: bb63921.
 - [x] **PDF editor no-stamp gate** — RESOLVED 2026-08-08. Users visiting /pdf-editor without a stamp now see a clear gate with CTAs. Commit: 1a39c30.
+- [x] **PDF editor rotation handle feedback loop** — RESOLVED 2026-08-08. Rotation was computing an absolute angle from stamp center, creating a feedback loop as the stamp rotated. Fixed by storing initial angle at drag start and computing delta. Commit: 05252ae.
+- [x] **PDF editor export Sharp @img/colour missing** — RESOLVED 2026-08-08. Build script only copied @img/sharp-linux-x64 but not @img/colour (pure JS, required by sharp/dist/colour.mjs). Fixed by copying entire node_modules/@img/ directory and detect-libc. Commit: fc69a75.
+

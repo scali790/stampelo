@@ -115,7 +115,7 @@ Multi-page PDFs are supported. Page navigation (Previous / Next) re-renders the 
 | Limitation | Detail |
 |---|---|
 | Upload size | 20 MB client-side limit; Vercel serverless body limit is 4.5 MB by default — large PDFs may fail at the server upload step |
-| Stamp rasterisation | `sharp` native binary must be available in the Vercel function runtime |
+| Stamp rasterisation | `sharp` native binary required. All `@img/*` packages and `detect-libc` are copied into the Vercel function by the build script (commit `fc69a75`). |
 | No authentication | `uploadPdf` and `stampPdf` are `publicProcedure` — any user can upload and stamp PDFs without authentication |
 | No cleanup | Uploaded and merged PDFs are not automatically deleted from Vercel Blob |
 | Position accuracy | Stamp position is stored as percentage of page dimensions. The visual overlay uses the pdfjs-rendered canvas (scale 1.5); the server merge uses `pdf-lib` page dimensions. These may differ slightly for non-standard page sizes. |
