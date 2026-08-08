@@ -106,15 +106,15 @@ export function TemplateDrawer({ open, onClose }: Props) {
 
   const [page, setPage] = useState(1);
   const { data: result, error, isLoading } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
-  const { data: categoryResults = [] } = trpc.template.categories.useQuery(undefined, {
+  const categoryQuery = trpc.template.categories.useQuery(undefined, {
     staleTime: 60_000,
   });
+  const categoryResults = categoryQuery.data ?? [];
+  const categoryError = categoryQuery.error;
   const templates = result?.items ?? [];
   const total = result?.total ?? 0;
   const totalPages = result?.totalPages ?? 1;
-  const categories = categoryResults
-    .filter((entry) => entry.count > 0)
-    .map((entry) => entry.category);
+  const categories = categoryResults.filter((entry) => entry.count > 0);
 
   useEffect(() => {
     selectedChipRef.current?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
@@ -175,12 +175,15 @@ export function TemplateDrawer({ open, onClose }: Props) {
             >
               <div className="flex w-max gap-1.5 pb-1 whitespace-nowrap">
                 <Button
-                  size="sm" variant={!category ? "default" : "outline"}
+                  size="sm"
+                  variant={!category ? "default" : "outline"}
                   className="h-6 text-xs whitespace-nowrap"
                   ref={!category ? selectedChipRef : undefined}
                   onClick={() => selectCategory(undefined)}
-                >All</Button>
-                {categories.map((cat) => (
+                >
+                  All
+                </Button>
+                {categories.map(({ category: cat, count }) => (
                   <Button
                     key={cat}
                     size="sm"
@@ -188,12 +191,22 @@ export function TemplateDrawer({ open, onClose }: Props) {
                     className="h-6 text-xs whitespace-nowrap"
                     ref={category === cat ? selectedChipRef : undefined}
                     onClick={() => selectCategory(cat)}
-                  >{cat}</Button>
+                    title={`${count} template${count === 1 ? "" : "s"}`}
+                  >
+                    {cat}
+                  </Button>
                 ))}
               </div>
             </div>
             <div className="text-[11px] text-muted-foreground">
-              {isLoading ? "Loading templates…" : error ? "Template service unavailable" : total > 0 ? `${total} template${total === 1 ? "" : "s"}` : "No templates"}
+              {isLoading
+                ? "Loading templates…"
+                : error
+                  ? "Template service unavailable"
+                  : total > 0
+                    ? `${total} template${total === 1 ? "" : "s"}`
+                    : "No templates"}
+              {categoryError ? " · Categories unavailable" : ""}
             </div>
           </div>
 
@@ -225,9 +238,9 @@ export function TemplateDrawer({ open, onClose }: Props) {
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-3 py-2 border-t text-xs shrink-0 bg-background">
-              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
               <span className="text-muted-foreground">Page {page} / {totalPages}</span>
-              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              <Button size="sm" variant="outline" className="h-6 text-xs" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
             </div>
           )}
         </div>
