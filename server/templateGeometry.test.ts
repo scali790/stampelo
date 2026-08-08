@@ -10,6 +10,11 @@ function summarizeTemplateAudit(repairGeometry: boolean) {
     arcTextOverflow: 0,
     frameCollision: 0,
     centerTextOverflow: 0,
+    arcTextTooCloseToFrame: 0,
+    arcTextOccupancyTooHigh: 0,
+    centerTextOccupancyTooHigh: 0,
+    insufficientVisualClearance: 0,
+    multiRingCollisionRisk: 0,
     missingInvalidGeometry: 0,
     unsupportedState: 0,
   };
@@ -25,6 +30,11 @@ function summarizeTemplateAudit(repairGeometry: boolean) {
           arcTextOverflow: false,
           frameCollision: false,
           centerTextOverflow: false,
+          arcTextTooCloseToFrame: false,
+          arcTextOccupancyTooHigh: false,
+          centerTextOccupancyTooHigh: false,
+          insufficientVisualClearance: false,
+          multiRingCollisionRisk: false,
           missingInvalidGeometry: false,
           unsupportedState: true,
         };
@@ -80,6 +90,7 @@ describe("Template geometry audit", () => {
     expect(audit.invalidByReason.arcTextOverflow).toBeGreaterThan(100);
     expect(audit.invalidByReason.frameCollision).toBeGreaterThan(100);
     expect(audit.invalidByReason.centerTextOverflow).toBeGreaterThan(300);
+    expect(audit.invalidByReason.multiRingCollisionRisk).toBeGreaterThan(100);
   });
 
   it("normalizes the full 318-template catalog into safe geometry", () => {
@@ -97,6 +108,15 @@ describe("Template normalization by shape", () => {
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 
+  it("repairs long double-ring round templates without arc-ring collision risk", () => {
+    const raw = RAW_TEMPLATE_RECORDS.find((record) => record.slug === "corp-round-7")!.stateJson;
+    const rawStamp = normalizeTemplateState(raw, { repairGeometry: false }).stamps[0]!;
+    const repairedStamp = normalizeTemplateState(raw).stamps[0]!;
+
+    expect(auditTemplateStampGeometry(rawStamp).multiRingCollisionRisk).toBe(true);
+    expect(Object.values(auditTemplateStampGeometry(repairedStamp)).some(Boolean)).toBe(false);
+  });
+
   it("uses semantic oval arc geometry rather than a circular fallback", () => {
     const stamp = getNormalizedStamp("corp-oval-1");
     const arc = stamp.elements.find((element) => element.type === "text-on-path");
@@ -112,6 +132,19 @@ describe("Template normalization by shape", () => {
   it("repairs rectangular templates without clipping their center text", () => {
     const stamp = getNormalizedStamp("corp-rect-1");
     const issues = auditTemplateStampGeometry(stamp);
+    expect(Object.values(issues).some(Boolean)).toBe(false);
+  });
+
+  it("shrinks long single-word center text until it respects the visual cap", () => {
+    const stamp = getNormalizedStamp("per-graduation-1");
+    const issues = auditTemplateStampGeometry(stamp);
+    const center = stamp.elements.find(
+      (element) => element.type === "center-text" && element.text === "CONGRATULATIONS"
+    );
+
+    if (!center || center.type !== "center-text") throw new Error("Graduation template is missing center text");
+
+    expect(center.fontSize).toBe(3);
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 

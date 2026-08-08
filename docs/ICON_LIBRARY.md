@@ -14,12 +14,12 @@ Business Finance, Medical, Law Economics, Agriculture Construction, Engineering 
 
 Built-in icons are stored in `shared/iconData.ts` as inline SVG path data. They are served directly from the server via the `icon.list` tRPC procedure — no database query required.
 
-The `icons` database table exists for future custom icon uploads but is not currently used for the built-in library.
+The `icons` database table exists for future custom icon uploads but is not currently used for the built-in library or the current editor picker.
 
 ## SVG Sanitization
 
-Custom SVG uploads are sanitized server-side before storage. Maximum upload size: 50 KB. Sanitization removes `<script>` tags, event handlers, and external references.
+Custom SVG uploads are sanitized client-side in `IconPickerDrawer.tsx` before insertion into the current stamp state. Maximum upload size: 50 KB. The current implementation strips `<script>` tags, inline event handlers, and `javascript:` references, but it does not persist uploads to the `icons` table.
 
 ## Recoloring
 
-Icons are rendered with a `fill` attribute set to the user-selected color via a `<g fill="${el.color}">` wrapper in the stamp renderer.
+Inserted icons are rendered as `ImageElement` SVG content with the user-selected color applied via a `<g fill="${el.color}">` wrapper in the stamp renderer. There is no separate persisted `icon` element type today.

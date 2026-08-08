@@ -14,9 +14,13 @@ const TEXT_PATH_SWEEP_DEGREES = 140;
 const INNER_SAFETY_MARGIN = 2.5;
 const ARC_ASCENDER_RATIO = 0.28;
 const ARC_EXTRA_GAP = 1.5;
+const ARC_INNER_BODY_RATIO = 0.08;
+const ARC_INNER_RING_CLEARANCE = 2;
 const ARIAL_BOLD_CHAR_WIDTH_RATIO = 0.58;
 const CENTER_TEXT_WIDTH_FACTOR = 0.86;
 const CENTER_TEXT_LINE_HEIGHT = 1.08;
+const CENTER_TEXT_VISUAL_WIDTH_OCCUPANCY = 0.88;
+const CENTER_TEXT_VISUAL_HEIGHT_OCCUPANCY = 0.82;
 
 // ─── Shabby filter definition ─────────────────────────────────────────────────
 export function getShabbyFilter(id: string): string {
@@ -98,6 +102,12 @@ export interface StampSafeBounds extends StampPlateGeometry {
   safeRy: number;
 }
 
+interface FrameAxisBand {
+  radiusY: number;
+  outerEdgeY: number;
+  innerEdgeY: number;
+}
+
 function getOuterFrame(stamp: Stamp): FrameElement | undefined {
   return stamp.elements
     .filter((el): el is FrameElement => el.type === "frame" && el.visible !== false)
@@ -161,6 +171,36 @@ export function getStampSafeBounds(stamp: Stamp): StampSafeBounds {
     safeRx: safeR,
     safeRy: safeR,
   };
+}
+
+function getVisibleFrameAxisBands(stamp: Stamp): FrameAxisBand[] {
+  const geometry = getStampPlateGeometry(stamp);
+  return stamp.elements
+    .filter((el): el is FrameElement => el.type === "frame" && el.visible !== false)
+    .map((frame) => {
+      const radiusY =
+        stamp.shape === "oval" || stamp.shape === "rectangular"
+          ? (frame.radius / 100) * geometry.maxRy
+          : (frame.radius / 100) * geometry.maxRx;
+      return {
+        radiusY,
+        outerEdgeY: radiusY + frame.strokeWidth / 2,
+        innerEdgeY: radiusY - frame.strokeWidth / 2,
+      };
+    })
+    .sort((a, b) => b.radiusY - a.radiusY);
+}
+
+function getNearestInnerFrameOuterEdge(stamp: Stamp): number | null {
+  const [, ...innerFrames] = getVisibleFrameAxisBands(stamp);
+  if (innerFrames.length === 0) return null;
+  return innerFrames[0]!.outerEdgeY;
+}
+
+function getOuterFrameInnerEdge(stamp: Stamp): number {
+  const [outerFrame] = getVisibleFrameAxisBands(stamp);
+  if (outerFrame) return outerFrame.innerEdgeY;
+  return getStampSafeBounds(stamp).safeRy + INNER_SAFETY_MARGIN;
 }
 
 // ─── Frame element renderer ───────────────────────────────────────────────────
@@ -348,6 +388,7 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
 // Returns { fontSize, letterSpacing } — both may be reduced from the input values.
 
 const ARC_USABLE_FRACTION = 0.88;   // keep more whitespace near the arc endpoints
+export const ARC_VISUAL_SAFE_OCCUPANCY = 0.78;
 const ARC_CHAR_WIDTH_RATIO = 0.58;  // Arial Bold average char width / fontSize
 const MIN_FONT_SIZE_ARC = 5;        // minimum readable font size on arc
 const MIN_LETTER_SPACING = 85;      // avoid overly aggressive glyph compression
@@ -361,7 +402,7 @@ export function fitArcText(
   const numChars = text.length;
   if (numChars === 0) return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
 
-  const availableArc = pathLength * ARC_USABLE_FRACTION;
+  const availableArc = pathLength * ARC_VISUAL_SAFE_OCCUPANCY;
   const clampedLetterSpacing = Number.isFinite(requestedLetterSpacing) ? requestedLetterSpacing : 100;
   const clampedFontSize = Number.isFinite(requestedFontSize) ? requestedFontSize : MIN_FONT_SIZE_ARC;
 
@@ -396,6 +437,16 @@ export function fitArcText(
 export function getRequiredArcLength(numChars: number, fontSize: number, letterSpacing: number): number {
   const spacingPx = (letterSpacing - 100) * 0.08;
   return numChars * fontSize * ARC_CHAR_WIDTH_RATIO + spacingPx * Math.max(numChars - 1, 0);
+}
+
+export interface TextOnPathVisualMetrics {
+  geometry: TextPathGeometry;
+  requiredLength: number;
+  occupancy: number;
+  outerClearance: number;
+  innerClearance: number | null;
+  bandWidth: number | null;
+  bandOccupancy: number | null;
 }
 
 // ─── Center text renderer ─────────────────────────────────────────────────────
@@ -444,18 +495,71 @@ export function doesCenterTextFit(
   const y = (el.y / 100) * CANVAS_SIZE;
   const lineYs = getCenterTextLineYs(y, fontSize, lines.length);
   const lineHeight = fontSize * CENTER_TEXT_LINE_HEIGHT;
+  const availableHeight = safeBounds.safeRy * 2;
   const blockTop = lineYs[0]! - fontSize * 0.6;
   const blockBottom = lineYs[lineYs.length - 1]! + fontSize * 0.6;
+  const blockHeight = blockBottom - blockTop;
 
   if (blockTop < CANVAS_CENTER - safeBounds.safeRy || blockBottom > CANVAS_CENTER + safeBounds.safeRy) {
     return false;
   }
 
+  if (blockHeight > availableHeight * CENTER_TEXT_VISUAL_HEIGHT_OCCUPANCY) {
+    return false;
+  }
+
   return lines.every((line, idx) => {
     const width = line.length * fontSize * ARIAL_BOLD_CHAR_WIDTH_RATIO;
-    const halfWidth = getShapeHalfWidthAtY(stamp, safeBounds, lineYs[idx]!) * CENTER_TEXT_WIDTH_FACTOR;
+    const halfWidth =
+      getShapeHalfWidthAtY(stamp, safeBounds, lineYs[idx]!) *
+      CENTER_TEXT_WIDTH_FACTOR *
+      CENTER_TEXT_VISUAL_WIDTH_OCCUPANCY;
     return Math.abs(x - CANVAS_CENTER) + width / 2 <= halfWidth && lineHeight <= safeBounds.safeRy * 2;
   });
+}
+
+export interface CenterTextVisualMetrics {
+  maxWidthOccupancy: number;
+  heightOccupancy: number;
+  topClearance: number;
+  bottomClearance: number;
+}
+
+export function getCenterTextVisualMetrics(
+  el: CenterTextElement,
+  stamp: Stamp,
+  fontSize = el.fontSize
+): CenterTextVisualMetrics {
+  const lines = getCenterTextLines(el.text);
+  if (lines.length === 0) {
+    return {
+      maxWidthOccupancy: 0,
+      heightOccupancy: 0,
+      topClearance: Number.POSITIVE_INFINITY,
+      bottomClearance: Number.POSITIVE_INFINITY,
+    };
+  }
+
+  const safeBounds = getStampSafeBounds(stamp);
+  const x = (el.x / 100) * CANVAS_SIZE;
+  const y = (el.y / 100) * CANVAS_SIZE;
+  const lineYs = getCenterTextLineYs(y, fontSize, lines.length);
+  const blockTop = lineYs[0]! - fontSize * 0.6;
+  const blockBottom = lineYs[lineYs.length - 1]! + fontSize * 0.6;
+  const blockHeight = blockBottom - blockTop;
+
+  const widthOccupancies = lines.map((line, idx) => {
+    const width = line.length * fontSize * ARIAL_BOLD_CHAR_WIDTH_RATIO;
+    const safeWidth = getShapeHalfWidthAtY(stamp, safeBounds, lineYs[idx]!) * 2 * CENTER_TEXT_WIDTH_FACTOR;
+    return safeWidth > 0 ? (Math.abs(x - CANVAS_CENTER) * 2 + width) / safeWidth : Number.POSITIVE_INFINITY;
+  });
+
+  return {
+    maxWidthOccupancy: Math.max(...widthOccupancies),
+    heightOccupancy: blockHeight / Math.max(safeBounds.safeRy * 2, 1),
+    topClearance: blockTop - (CANVAS_CENTER - safeBounds.safeRy),
+    bottomClearance: CANVAS_CENTER + safeBounds.safeRy - blockBottom,
+  };
 }
 
 export function fitCenterTextElementFontSize(
@@ -463,10 +567,10 @@ export function fitCenterTextElementFontSize(
   stamp: Stamp,
   maxFontSize = el.fontSize
 ): number {
-  for (let fontSize = Math.floor(maxFontSize); fontSize >= 4; fontSize--) {
+  for (let fontSize = Math.floor(maxFontSize); fontSize >= 3; fontSize--) {
     if (doesCenterTextFit(el, stamp, fontSize)) return fontSize;
   }
-  return 4;
+  return 3;
 }
 
 function renderCenterText(el: CenterTextElement): string {
@@ -632,12 +736,40 @@ export function fitArcTextRadiusToStamp(
   fontSize: number,
   stamp: Stamp
 ): { radiusSvg: number; radiusPct: number } {
-  const safeBounds = getStampSafeBounds(stamp);
-  const baseRadius = safeBounds.textPathBaseRadius;
-  const maxSafeRadius = Math.max(Math.min(safeBounds.safeRx, safeBounds.safeRy) - fontSize * ARC_ASCENDER_RATIO - ARC_EXTRA_GAP, 1);
+  const geometry = getStampPlateGeometry(stamp);
+  const baseRadius = geometry.maxRy;
+  const outerFrameInnerEdge = getOuterFrameInnerEdge(stamp);
+  const radiusSvg = Math.max(outerFrameInnerEdge - fontSize * ARC_ASCENDER_RATIO - ARC_EXTRA_GAP, 1);
   return {
-    radiusSvg: maxSafeRadius,
-    radiusPct: Math.floor((maxSafeRadius / baseRadius) * 100),
+    radiusSvg,
+    radiusPct: Math.floor((radiusSvg / baseRadius) * 100),
+  };
+}
+
+export function getTextOnPathVisualMetrics(
+  el: TextOnPathElement,
+  stamp: Stamp,
+  fontSize = el.fontSize,
+  letterSpacing = el.letterSpacing,
+  radiusPct = el.radius
+): TextOnPathVisualMetrics {
+  const geometry = getTextPathGeometry({ ...el, fontSize, letterSpacing, radius: radiusPct }, stamp);
+  const requiredLength = getRequiredArcLength(el.text.length, fontSize, letterSpacing);
+  const outerFrameInnerEdge = getOuterFrameInnerEdge(stamp);
+  const innerFrameOuterEdge = getNearestInnerFrameOuterEdge(stamp);
+  const outerClearance = outerFrameInnerEdge - (geometry.ry + fontSize * ARC_ASCENDER_RATIO);
+  const innerClearance = innerFrameOuterEdge === null ? null : geometry.ry - innerFrameOuterEdge;
+  const bandWidth = innerFrameOuterEdge === null ? null : outerFrameInnerEdge - innerFrameOuterEdge;
+  const textBandThickness = fontSize * (ARC_ASCENDER_RATIO + ARC_INNER_BODY_RATIO);
+
+  return {
+    geometry,
+    requiredLength,
+    occupancy: geometry.pathLength > 0 ? requiredLength / geometry.pathLength : Number.POSITIVE_INFINITY,
+    outerClearance,
+    innerClearance,
+    bandWidth,
+    bandOccupancy: bandWidth && bandWidth > 0 ? textBandThickness / bandWidth : null,
   };
 }
 
@@ -646,14 +778,24 @@ export function doesTextOnPathCollideFrame(
   radiusPct: number,
   fontSize: number
 ): boolean {
-  const safeBounds = getStampSafeBounds(stamp);
-  const baseRadius = safeBounds.textPathBaseRadius;
-  const radiusSvg = (radiusPct / 100) * baseRadius;
-  const radiusY =
-    stamp.shape === "oval"
-      ? (radiusPct / 100) * getStampPlateGeometry(stamp).maxRy
-      : radiusSvg;
-  return radiusY + fontSize * ARC_ASCENDER_RATIO + ARC_EXTRA_GAP > safeBounds.safeRy;
+  const probe: TextOnPathElement = {
+    id: "probe",
+    type: "text-on-path",
+    color: stamp.color,
+    visible: true,
+    text: "PROBE",
+    font: "Arial",
+    fontSize,
+    bold: true,
+    italic: false,
+    align: "center",
+    inverse: false,
+    radius: radiusPct,
+    letterSpacing: 100,
+    startAngle: 0,
+  };
+  const metrics = getTextOnPathVisualMetrics(probe, stamp, fontSize, 100, radiusPct);
+  return metrics.outerClearance < 0 || (metrics.innerClearance !== null && metrics.innerClearance < 0);
 }
 
 export function doesTextOnPathFit(
@@ -663,6 +805,6 @@ export function doesTextOnPathFit(
   letterSpacing = el.letterSpacing,
   radiusPct = el.radius
 ): boolean {
-  const geometry = getTextPathGeometry({ ...el, fontSize, letterSpacing, radius: radiusPct }, stamp);
-  return getRequiredArcLength(el.text.length, fontSize, letterSpacing) <= geometry.pathLength * ARC_USABLE_FRACTION;
+  const metrics = getTextOnPathVisualMetrics(el, stamp, fontSize, letterSpacing, radiusPct);
+  return metrics.occupancy <= ARC_VISUAL_SAFE_OCCUPANCY;
 }

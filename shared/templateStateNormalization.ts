@@ -9,8 +9,10 @@ import type {
   TextOnPathElement,
 } from "../client/src/editor/types";
 import {
+  ARC_VISUAL_SAFE_OCCUPANCY,
   CANVAS_CENTER,
   CANVAS_SIZE,
+  getCenterTextVisualMetrics,
   getCenterTextLines,
   doesCenterTextFit,
   doesTextOnPathCollideFrame,
@@ -18,6 +20,7 @@ import {
   fitArcText,
   fitArcTextRadiusToStamp,
   fitCenterTextElementFontSize,
+  getTextOnPathVisualMetrics,
   getStampPlateGeometry,
   getStampSafeBounds,
   getTextPathGeometry,
@@ -34,7 +37,13 @@ const SUPPORTED_SHAPES = new Set<StampShape>(["round", "oval", "rectangular", "t
 const CENTER_TEXT_LINE_HEIGHT = 1.08;
 const CENTER_STACK_GAP_RATIO = 0.35;
 const MIN_CENTER_STACK_GAP = 2;
-const ARC_CENTER_CLEARANCE = 2;
+const ARC_CENTER_CLEARANCE = 3;
+const ARC_MIN_OUTER_CLEARANCE = 1.5;
+const ARC_MIN_INNER_CLEARANCE = 2;
+const ARC_MAX_BAND_OCCUPANCY = 0.72;
+const CENTER_MAX_WIDTH_OCCUPANCY = 0.88;
+const CENTER_MAX_HEIGHT_OCCUPANCY = 0.82;
+const CENTER_MIN_EDGE_CLEARANCE = 1.5;
 
 export interface TemplateNormalizationOptions {
   repairGeometry?: boolean;
@@ -44,6 +53,11 @@ export interface TemplateGeometryIssueSummary {
   arcTextOverflow: boolean;
   frameCollision: boolean;
   centerTextOverflow: boolean;
+  arcTextTooCloseToFrame: boolean;
+  arcTextOccupancyTooHigh: boolean;
+  centerTextOccupancyTooHigh: boolean;
+  insufficientVisualClearance: boolean;
+  multiRingCollisionRisk: boolean;
   missingInvalidGeometry: boolean;
   unsupportedState: boolean;
 }
@@ -206,13 +220,17 @@ function fitTextOnPathElementGeometry(el: TextOnPathElement, stamp: Stamp): Text
   if (!el.text.trim()) return el;
 
   const requestedRadiusPct = clampNumber(el.radius, 75, 10, 100);
-  let radiusPct = Math.min(requestedRadiusPct, fitArcTextRadiusToStamp(el.fontSize, stamp).radiusPct);
-  let geometry = getTextPathGeometry({ ...el, radius: radiusPct }, stamp);
-  let fitted = fitArcText(el.text, geometry.pathLength, el.fontSize, el.letterSpacing);
+  let radiusPct = requestedRadiusPct;
+  let fitted = { fontSize: el.fontSize, letterSpacing: el.letterSpacing };
 
-  radiusPct = Math.min(requestedRadiusPct, fitArcTextRadiusToStamp(fitted.fontSize, stamp).radiusPct);
-  geometry = getTextPathGeometry({ ...el, radius: radiusPct }, stamp);
-  fitted = fitArcText(el.text, geometry.pathLength, fitted.fontSize, fitted.letterSpacing);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const targetRadiusPct = fitArcTextRadiusToStamp(fitted.fontSize, stamp).radiusPct;
+    radiusPct = clampNumber(targetRadiusPct, requestedRadiusPct, 10, 100);
+    const geometry = getTextPathGeometry({ ...el, radius: radiusPct }, stamp);
+    fitted = fitArcText(el.text, geometry.pathLength, fitted.fontSize, fitted.letterSpacing);
+  }
+
+  radiusPct = fitArcTextRadiusToStamp(fitted.fontSize, stamp).radiusPct;
 
   return {
     ...el,
@@ -220,6 +238,58 @@ function fitTextOnPathElementGeometry(el: TextOnPathElement, stamp: Stamp): Text
     letterSpacing: fitted.letterSpacing,
     radius: radiusPct,
   };
+}
+
+function adjustInnerFrameGeometry(stamp: Stamp): Stamp {
+  const geometry = getStampPlateGeometry(stamp);
+  const frameEntries = stamp.elements
+    .map((element, index) => ({ element, index }))
+    .filter(
+      (entry): entry is { element: FrameElement; index: number } =>
+        entry.element.type === "frame" && entry.element.visible !== false
+    )
+    .sort((a, b) => b.element.radius - a.element.radius);
+
+  if (frameEntries.length < 2) return stamp;
+
+  const [outerFrame, firstInnerFrame] = frameEntries;
+  const arcElements = stamp.elements.filter(
+    (element): element is TextOnPathElement =>
+      element.type === "text-on-path" && element.visible !== false && element.text.trim().length > 0
+  );
+
+  if (arcElements.length === 0) return stamp;
+
+  const targetOuterEdge = arcElements.reduce((minOuterEdge, element) => {
+    const textGeometry = getTextPathGeometry(element, stamp);
+    return Math.min(minOuterEdge, textGeometry.ry - ARC_MIN_INNER_CLEARANCE);
+  }, Number.POSITIVE_INFINITY);
+
+  if (!Number.isFinite(targetOuterEdge)) return stamp;
+
+  const currentInnerRadiusY =
+    stamp.shape === "oval" || stamp.shape === "rectangular"
+      ? (firstInnerFrame.element.radius / 100) * geometry.maxRy
+      : (firstInnerFrame.element.radius / 100) * geometry.maxRx;
+  const currentOuterEdge = currentInnerRadiusY + firstInnerFrame.element.strokeWidth / 2;
+
+  if (currentOuterEdge <= targetOuterEdge) return stamp;
+
+  const radiusBase =
+    stamp.shape === "oval" || stamp.shape === "rectangular" ? geometry.maxRy : geometry.maxRx;
+  const maxRadiusPct = Math.max(outerFrame.element.radius - 4, 10);
+  const targetRadiusPct = Math.min(
+    maxRadiusPct,
+    Math.max(((targetOuterEdge - firstInnerFrame.element.strokeWidth / 2) / radiusBase) * 100, 10)
+  );
+
+  const nextElements = [...stamp.elements];
+  nextElements[firstInnerFrame.index] = {
+    ...firstInnerFrame.element,
+    radius: targetRadiusPct,
+  };
+
+  return { ...stamp, elements: nextElements };
 }
 
 function fitCenterTextElementGeometry(el: CenterTextElement, stamp: Stamp): CenterTextElement {
@@ -351,7 +421,9 @@ function normalizeTemplateStampGeometry(stamp: Stamp): Stamp {
     }
   });
 
-  return layoutCenterTextElementsGeometry({ ...stamp, elements: normalizedElements });
+  return layoutCenterTextElementsGeometry(
+    adjustInnerFrameGeometry({ ...stamp, elements: normalizedElements })
+  );
 }
 
 export function normalizeTemplateStamp(
@@ -407,6 +479,11 @@ export function auditTemplateStampGeometry(stamp: Stamp): TemplateGeometryIssueS
     arcTextOverflow: false,
     frameCollision: false,
     centerTextOverflow: false,
+    arcTextTooCloseToFrame: false,
+    arcTextOccupancyTooHigh: false,
+    centerTextOccupancyTooHigh: false,
+    insufficientVisualClearance: false,
+    multiRingCollisionRisk: false,
     missingInvalidGeometry: false,
     unsupportedState: !SUPPORTED_SHAPES.has(stamp.shape),
   };
@@ -422,11 +499,31 @@ export function auditTemplateStampGeometry(stamp: Stamp): TemplateGeometryIssueS
           issues.missingInvalidGeometry = true;
           break;
         }
+        const arcMetrics = getTextOnPathVisualMetrics(
+          element,
+          stamp,
+          element.fontSize,
+          element.letterSpacing,
+          element.radius
+        );
         if (doesTextOnPathCollideFrame(stamp, element.radius, element.fontSize)) {
           issues.frameCollision = true;
         }
         if (!doesTextOnPathFit(element, stamp, element.fontSize, element.letterSpacing, element.radius)) {
           issues.arcTextOverflow = true;
+        }
+        if (arcMetrics.outerClearance < ARC_MIN_OUTER_CLEARANCE) {
+          issues.arcTextTooCloseToFrame = true;
+        }
+        if (arcMetrics.occupancy > ARC_VISUAL_SAFE_OCCUPANCY) {
+          issues.arcTextOccupancyTooHigh = true;
+        }
+        if (
+          arcMetrics.innerClearance !== null &&
+          (arcMetrics.innerClearance < ARC_MIN_INNER_CLEARANCE ||
+            (arcMetrics.bandOccupancy !== null && arcMetrics.bandOccupancy > ARC_MAX_BAND_OCCUPANCY))
+        ) {
+          issues.multiRingCollisionRisk = true;
         }
         break;
       case "center-text":
@@ -434,8 +531,22 @@ export function auditTemplateStampGeometry(stamp: Stamp): TemplateGeometryIssueS
           issues.missingInvalidGeometry = true;
           break;
         }
+        const centerMetrics = getCenterTextVisualMetrics(element, stamp, element.fontSize);
         if (!doesCenterTextFit(element, stamp, element.fontSize)) {
           issues.centerTextOverflow = true;
+        }
+        if (
+          centerMetrics.maxWidthOccupancy > CENTER_MAX_WIDTH_OCCUPANCY ||
+          centerMetrics.heightOccupancy > CENTER_MAX_HEIGHT_OCCUPANCY
+        ) {
+          issues.centerTextOccupancyTooHigh = true;
+        }
+        if (
+          stamp.shape !== "rectangular" &&
+          (centerMetrics.topClearance < CENTER_MIN_EDGE_CLEARANCE ||
+            centerMetrics.bottomClearance < CENTER_MIN_EDGE_CLEARANCE)
+        ) {
+          issues.insufficientVisualClearance = true;
         }
         break;
       case "frame":

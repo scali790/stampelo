@@ -125,8 +125,8 @@ These helpers are used in `createDefaultStamp()` and by the shared SVG renderer.
 Seeded template states are not treated as trusted final geometry. Before preview, load, or audit, the shared normalizer (`shared/templateStateNormalization.ts`) performs:
 
 1. **Schema normalization** — legacy `textOnPath` / `centerText` element names are converted to the canonical element types and missing `heightMm` is filled in shape-safely.
-2. **Arc repair** — `text-on-path` radius is clamped against the safe frame bounds, then `fitArcText()` is run against the real semantic arc length.
-3. **Center-text repair** — center text is fitted as a **stack**, not as isolated elements. The fitter reserves a central band between any top/bottom arc text, rescales the stack, and repositions the lines vertically.
+2. **Arc repair** — `text-on-path` is fitted against the real semantic arc length with a visual occupancy cap (`renderedTextLength <= arcLength × 0.78`). For multi-ring seals, the fitter also normalizes the nearest inner ring so top/bottom arc text has explicit breathing room instead of merely avoiding mathematical overlap.
+3. **Center-text repair** — center text is fitted as a **stack**, not as isolated elements. The fitter reserves a central band between any top/bottom arc text, applies a visual width/height cap, then rescales and repositions the lines vertically.
 4. **Center-text wrapping** — if a long center phrase still cannot fit at the minimum readable font size, the normalizer tries balanced 2-line / 3-line wraps before accepting overflow.
 
 This is the canonical rule for:
@@ -285,8 +285,8 @@ Starter assertions live in `server/defaultStamp.test.ts`. Catalog normalization 
 - Canonical text strings for each layer
 - Brand colour `#1a3a6b` on all elements
 - All effects off by default
-- Arc glyph top ≤ `safeInnerR` (no frame collision)
-- Centre text width ≤ available safe width (no clipping)
+- Arc glyphs remain below the strict occupancy cap and maintain ring/frame clearance
+- Centre text width and height stay below the visual occupancy caps (not just the hard bounds)
 - Starter bottom arc is no larger than the top arc fit
 - Catalog audit flags the unnormalized 318-template source set
 - Catalog normalization reduces repaired invalid templates to `0`
@@ -305,7 +305,7 @@ The grid is an editor-only SVG overlay and is **never included in exports**. Zoo
 
 ## Image / Icon Element
 
-The **Image** toolbar button opens the `IconPickerDrawer` (292 icons across 19 categories) and a custom SVG upload (max 50 KB, client-side script sanitisation). Icons are stored in the `icons` table and served via `trpc.icon.list`.
+The **Image** toolbar button opens the `IconPickerDrawer` (292 icons across 19 categories) and a custom SVG upload (max 50 KB, client-side sanitisation). Built-in icons are served from `shared/iconData.ts` via `trpc.icon.list`; inserted artwork is represented in stamp state as an `ImageElement` with inline `svgContent`. There is no separate persisted `icon` element type today.
 
 ---
 

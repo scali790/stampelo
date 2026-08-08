@@ -224,6 +224,7 @@ export function TemplateDrawer({ open, onClose }: Props) {
                 {templates.map((t) => (
                   <div
                     key={t.id}
+                    data-testid={`template-card-${String(t.id)}`}
                     className="border rounded-lg p-2 cursor-pointer hover:border-primary hover:bg-accent/30 transition-all"
                     onClick={() => handleLoad(t)}
                   >

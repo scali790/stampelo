@@ -26,6 +26,11 @@ function emptyIssueSummary(): TemplateGeometryIssueSummary {
     arcTextOverflow: false,
     frameCollision: false,
     centerTextOverflow: false,
+    arcTextTooCloseToFrame: false,
+    arcTextOccupancyTooHigh: false,
+    centerTextOccupancyTooHigh: false,
+    insufficientVisualClearance: false,
+    multiRingCollisionRisk: false,
     missingInvalidGeometry: false,
     unsupportedState: false,
   };
@@ -59,12 +64,13 @@ async function main() {
   const { source, rows } = await loadRows();
   const categories = new Map<string, number>();
   const invalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
+  const repairedInvalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
 
   let valid = 0;
   let invalid = 0;
   let repairedStillInvalid = 0;
 
-  const reasonCounts = rows.reduce((acc, row) => {
+  const { rawReasonCounts, repairedReasonCounts } = rows.reduce((acc, row) => {
     categories.set(row.category, (categories.get(row.category) ?? 0) + 1);
 
     const stamp = normalizeTemplateState(row.stateJson, { repairGeometry: false }).stamps[0];
@@ -84,18 +90,53 @@ async function main() {
       valid++;
     }
 
-    if (hasIssues(repairedIssues)) repairedStillInvalid++;
+    if (hasIssues(repairedIssues)) {
+      repairedStillInvalid++;
+      const repairedShape = repairedStamp?.shape ?? row.shape;
+      if (
+        repairedShape === "round" ||
+        repairedShape === "oval" ||
+        repairedShape === "rectangular" ||
+        repairedShape === "triangular"
+      ) {
+        repairedInvalidByShape[repairedShape]++;
+      } else {
+        repairedInvalidByShape.other++;
+      }
+    }
 
     for (const [reason, present] of Object.entries(issues)) {
-      if (present) acc[reason as keyof TemplateGeometryIssueSummary]++;
+      if (present) acc.rawReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
+    }
+    for (const [reason, present] of Object.entries(repairedIssues)) {
+      if (present) acc.repairedReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
     }
     return acc;
   }, {
-    arcTextOverflow: 0,
-    frameCollision: 0,
-    centerTextOverflow: 0,
-    missingInvalidGeometry: 0,
-    unsupportedState: 0,
+    rawReasonCounts: {
+      arcTextOverflow: 0,
+      frameCollision: 0,
+      centerTextOverflow: 0,
+      arcTextTooCloseToFrame: 0,
+      arcTextOccupancyTooHigh: 0,
+      centerTextOccupancyTooHigh: 0,
+      insufficientVisualClearance: 0,
+      multiRingCollisionRisk: 0,
+      missingInvalidGeometry: 0,
+      unsupportedState: 0,
+    },
+    repairedReasonCounts: {
+      arcTextOverflow: 0,
+      frameCollision: 0,
+      centerTextOverflow: 0,
+      arcTextTooCloseToFrame: 0,
+      arcTextOccupancyTooHigh: 0,
+      centerTextOccupancyTooHigh: 0,
+      insufficientVisualClearance: 0,
+      multiRingCollisionRisk: 0,
+      missingInvalidGeometry: 0,
+      unsupportedState: 0,
+    },
   });
 
   console.log(JSON.stringify({
@@ -104,9 +145,11 @@ async function main() {
     valid,
     invalid,
     invalidByShape,
-    invalidByReason: reasonCounts,
+    invalidByReason: rawReasonCounts,
     categories: Object.fromEntries(Array.from(categories.entries()).sort((a, b) => a[0].localeCompare(b[0]))),
     repairedStillInvalid,
+    repairedInvalidByShape,
+    repairedInvalidByReason: repairedReasonCounts,
   }, null, 2));
 }
 
