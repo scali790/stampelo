@@ -37,7 +37,7 @@ export const pdfEditorRouter = router({
       placement: z.object({
         xPct: z.number().min(0).max(100),
         yPct: z.number().min(0).max(100),
-        scale: z.number().min(0.1).max(5),
+        stampSizePct: z.number().min(0.5).max(100),
         rotation: z.number().min(0).max(360),
         stampWidthMm: z.number().min(10).max(200),
       }),

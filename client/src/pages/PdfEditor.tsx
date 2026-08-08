@@ -330,7 +330,11 @@ export default function PdfEditor() {
                       placement: {
                         xPct: placement.x,
                         yPct: placement.y,
-                        scale: placement.scale,
+                        // stampSizePct = stamp display width as % of canvas width
+                        // This lets the server reproduce the exact same relative size in the PDF
+                        stampSizePct: containerRef.current
+                          ? (stampDisplayPx / containerRef.current.getBoundingClientRect().width) * 100
+                          : (stampDisplayPx / 760) * 100,
                         rotation: placement.rotation,
                         stampWidthMm: stamp.widthMm,
                       },
@@ -483,4 +487,3 @@ export default function PdfEditor() {
     </div>
   );
 }
-

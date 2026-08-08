@@ -10,7 +10,7 @@ import { join } from "path";
 export interface StampPlacement {
   xPct: number;
   yPct: number;
-  scale: number;
+  stampSizePct: number;  // stamp width as % of page width (matches editor display)
   rotation: number;
   stampWidthMm: number;
 }
@@ -49,13 +49,17 @@ export async function mergePdfStamp(
       ? pageIndices.filter((i) => i >= 0 && i < totalPages)
       : Array.from({ length: totalPages }, (_, i) => i);
 
-  // Rasterise stamp SVG to PNG at 300 DPI
-  const dpi = 300;
-  const stampPxNatural = Math.round((placement.stampWidthMm * dpi) / 25.4);
-  const stampPx = Math.max(Math.round(stampPxNatural * placement.scale), 20);
+  // Compute stamp size from user-visible percentage of page width.
+  // stampSizePct = (stampDisplayPx / canvasDisplayPx) * 100, sent by client.
+  // This ensures the exported stamp matches the editor preview exactly.
+  const firstPage = pages[targets[0] ?? 0];
+  const refPageWidth = firstPage ? firstPage.getSize().width : 595; // A4 default
+  const stampWidthPtForRender = (placement.stampSizePct / 100) * refPageWidth;
+  // Rasterise at 300 DPI for high quality
+  const dpiForRender = 300;
+  const stampPx = Math.max(Math.round((stampWidthPtForRender / 72) * dpiForRender), 20);
 
   const resvg = new Resvg(stampSvg, {
-    dpi,
     fitTo: { mode: "width", value: stampPx },
   });
   const rendered = resvg.render();
@@ -68,7 +72,7 @@ export async function mergePdfStamp(
     const page = pages[pageIdx];
     if (!page) continue;
     const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
-    const stampWidthPt = (stampPx / dpi) * 72;
+    const stampWidthPt = (placement.stampSizePct / 100) * pageWidthPt;
     const stampHeightPt = stampWidthPt;
     const xPt = (placement.xPct / 100) * pageWidthPt - stampWidthPt / 2;
     const yPt =
