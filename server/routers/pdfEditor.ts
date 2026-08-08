@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 
 export const pdfEditorRouter = router({
   /**
-   * Upload a PDF and get back a storage key for subsequent operations.
+   * Upload a PDF and get back a storage key AND full blob URL for subsequent operations.
    * Accepts base64-encoded PDF content.
    */
   uploadPdf: publicProcedure
@@ -20,17 +20,19 @@ export const pdfEditorRouter = router({
         throw new Error("PDF file too large (max 20 MB)");
       }
       const key = `pdf-uploads/${nanoid()}.pdf`;
-      await storagePut(key, pdfBuffer, "application/pdf");
-      return { key };
+      const { url } = await storagePut(key, pdfBuffer, "application/pdf");
+      // Return both key and full blob URL so stampPdf can fetch the PDF directly
+      return { key, url };
     }),
 
   /**
    * Merge a stamp onto specified pages of a previously uploaded PDF.
-   * Returns a signed URL to download the stamped PDF.
+   * Returns a URL to download the stamped PDF.
    */
   stampPdf: publicProcedure
     .input(z.object({
       pdfKey: z.string(),
+      pdfUrl: z.string().optional(), // full blob URL (preferred over key lookup)
       stampSvg: z.string(),
       placement: z.object({
         xPct: z.number().min(0).max(100),
@@ -42,8 +44,8 @@ export const pdfEditorRouter = router({
       pageIndices: z.array(z.number().int().min(0)).default([]),
     }))
     .mutation(async ({ input }) => {
-      // Fetch the original PDF from S3
-      const { url: pdfUrl } = await storageGet(input.pdfKey);
+      // Use the full URL if provided (avoids storageGet URL reconstruction issues)
+      const pdfUrl = input.pdfUrl ?? (await storageGet(input.pdfKey)).url;
       const pdfResponse = await fetch(pdfUrl);
       if (!pdfResponse.ok) throw new Error("Failed to fetch PDF from storage");
       const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
@@ -56,12 +58,9 @@ export const pdfEditorRouter = router({
         input.pageIndices
       );
 
-      // Store stamped PDF
+      // Store stamped PDF and return its URL
       const outputKey = `pdf-stamped/${nanoid()}.pdf`;
-      await storagePut(outputKey, stampedPdf, "application/pdf");
-
-      // Get signed URL (valid 1 hour)
-      const { url } = await storageGet(outputKey);
-      return { downloadUrl: url, outputKey };
+      const { url: downloadUrl } = await storagePut(outputKey, stampedPdf, "application/pdf");
+      return { downloadUrl, outputKey };
     }),
 });

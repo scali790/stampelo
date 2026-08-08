@@ -29,6 +29,7 @@ export default function PdfEditor() {
     x: 50, y: 50, scale: 1, rotation: 0, pageIndex: 0,
   });
   const [pdfKey, setPdfKey] = useState<string | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [isStamping, setIsStamping] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -38,7 +39,11 @@ export default function PdfEditor() {
   const stamp = getActiveStamp();
 
   const uploadPdf = trpc.pdfEditor.uploadPdf.useMutation({
-    onSuccess: (data) => { setPdfKey(data.key); toast.success("PDF uploaded to server"); },
+    onSuccess: (data) => {
+      setPdfKey(data.key);
+      setPdfBlobUrl((data as any).url ?? null);
+      toast.success("PDF uploaded to server");
+    },
     onError: () => toast.error("Failed to upload PDF"),
   });
 
@@ -120,7 +125,14 @@ export default function PdfEditor() {
   const handleMouseUp = () => setIsDragging(false);
 
   const stampSvg = stamp ? renderStampSvg(stamp) : null;
-  const stampSize = stamp ? Math.round((stamp.widthMm / 150) * 200 * placement.scale) : 80;
+  // Compute stamp display size proportional to the rendered page width.
+  // The PDF page image fills the container div. We use the container's current width
+  // (or 800px fallback for A4) to compute the stamp's visual size at 1x scale.
+  // Reference: A4 = 210mm wide. For a 38mm stamp: (38/210)*800 ≈ 145px at 1x.
+  const pageDisplayPx = containerRef.current?.offsetWidth ?? 800;
+  const stampSize = stamp
+    ? Math.round((stamp.widthMm / 210) * pageDisplayPx * placement.scale)
+    : 80;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -194,8 +206,9 @@ export default function PdfEditor() {
                       if (!pdfKey || !stamp) return;
                       setIsStamping(true);
                       stampPdfMutation.mutate({
-                        pdfKey,
-                        stampSvg: renderStampSvg(stamp),
+                       pdfKey,
+                        ...(pdfBlobUrl ? { pdfUrl: pdfBlobUrl } : {}),
+                       stampSvg: renderStampSvg(stamp),
                         placement: {
                           xPct: placement.x,
                           yPct: placement.y,

@@ -44,10 +44,9 @@ export async function storageGet(
   _expiresIn = 3600
 ): Promise<{ key: string; url: string }> {
   if (IS_VERCEL) {
-    // Vercel Blob URLs are public; reconstruct from base URL
-    const baseUrl = process.env.BLOB_BASE_URL || "";
-    const url = baseUrl ? `${baseUrl}/${relKey}` : relKey;
-    return { key: relKey, url };
+    // Use blob head() to retrieve the actual public URL for this key
+    const blob = await head(relKey);
+    return { key: relKey, url: blob.url };
   }
   return { key: relKey, url: `/local-storage/${relKey}` };
 }
