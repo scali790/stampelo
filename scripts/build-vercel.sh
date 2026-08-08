@@ -12,6 +12,9 @@ set -e
 echo "[build] Building Vite frontend..."
 npx vite build
 
+echo "[build] Generating route-aware SEO HTML..."
+node scripts/build-seo-pages.mjs
+
 echo "[build] Creating .vercel/output structure..."
 rm -rf .vercel/output
 mkdir -p .vercel/output/static
@@ -49,8 +52,18 @@ cat > .vercel/output/config.json << 'CFGEOF'
     { "src": "^/api/test-b$", "dest": "/test-b" },
     { "src": "^/api(/.*)?$", "dest": "/api/server" },
     { "src": "^/assets/(.*)$", "dest": "/assets/$1" },
-    { "src": "^/(.*\\.(js|css|png|svg|ico|json|txt|xml|woff|woff2|ttf|eot))$", "dest": "/$1" },
-    { "src": "^/(.*)$", "dest": "/index.html" }
+    { "src": "^/(.*\\.(js|css|png|jpg|jpeg|webp|avif|svg|ico|json|txt|xml|woff|woff2|ttf|eot))$", "dest": "/$1" },
+    { "src": "^/$", "dest": "/index.html" },
+    { "src": "^/editor/?$", "dest": "/editor.html" },
+    { "src": "^/pdf-editor/?$", "dest": "/pdf-editor.html" },
+    { "src": "^/privacy/?$", "dest": "/privacy.html" },
+    { "src": "^/terms/?$", "dest": "/terms.html" },
+    { "src": "^/refund/?$", "dest": "/refund.html" },
+    { "src": "^/account/?$", "dest": "/account.html" },
+    { "src": "^/admin/?$", "dest": "/admin.html" },
+    { "src": "^/download/?$", "dest": "/download.html" },
+    { "src": "^/404/?$", "dest": "/404.html", "status": 404 },
+    { "src": "^/.*$", "dest": "/404.html", "status": 404 }
   ]
 }
 CFGEOF
