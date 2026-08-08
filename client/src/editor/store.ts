@@ -47,9 +47,10 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
   const heightMm = shape === "rectangular" ? 25 : 38;
   const geometry = getStampSafeGeometry(widthMm);
 
-  const arcFontSize = 6;
+  const topArcFontSize = 6;
+  const bottomArcFontSize = 4;
   const { radiusPct: arcRadiusPct } = fitArcTextRadius(
-    arcFontSize,
+    topArcFontSize,
     geometry.safeInnerR,
     geometry.maxR
   );
@@ -75,7 +76,7 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     visible: true,
     text: STARTER_TOP_TEXT,
     font: "Arial",
-    fontSize: arcFontSize,
+    fontSize: topArcFontSize,
     bold: true,
     italic: false,
     align: "center",
@@ -108,7 +109,7 @@ export function createDefaultStamp(shape: StampShape = "round"): Stamp {
     visible: true,
     text: STARTER_BOTTOM_TEXT,
     font: "Arial",
-    fontSize: arcFontSize,
+    fontSize: bottomArcFontSize,
     bold: true,
     italic: false,
     align: "center",

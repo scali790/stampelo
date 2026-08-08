@@ -72,12 +72,12 @@ Coordinate convention:
 - `270°` = `9 o'clock`
 - positive rotation = clockwise
 
-For round/oval arc text, the renderer builds a single open arc with a fixed sweep of `160°`:
+For round/oval arc text, the renderer builds a single open semantic arc with a fixed sweep of `140°`:
 
 | Arc role | Center angle when `startAngle = 0` | Path start | Path end | Sweep flag | Read order |
 |---|---:|---:|---:|---:|---|
-| Top (`inverse = false`) | `0°` | `280°` | `80°` | `1` | Left-to-right across the upper arc |
-| Bottom (`inverse = true`) | `180°` | `260°` | `100°` | `0` | Left-to-right across the lower arc |
+| Top (`inverse = false`) | `0°` | `290°` | `70°` | `1` | Left-to-right across the upper arc |
+| Bottom (`inverse = true`) | `180°` | `250°` | `110°` | `0` | Left-to-right across the lower arc |
 
 `startAngle` rotates the semantic arc center around the plate. It no longer means "where a full-circle path starts"; it means "rotate the top/bottom arc from its canonical center".
 
@@ -88,19 +88,25 @@ This model guarantees:
 - both arcs stay on their intended half of the plate
 - preview/export/editor all share the same path semantics
 
+Oval stamps use the same semantic top/bottom model, but the renderer emits an **elliptical** `A rx,ry` path instead of forcing the arc onto a circle. This is critical for 45 × 30 mm oval templates because a circular fallback underestimates both the usable path length and the visual frame geometry.
+
 ### Arc-length auto-fit (`fitArcText`)
 
 Every `text-on-path` element is auto-fitted against the usable portion of its semantic arc:
 
 ```
-availableArc = pathLength × 0.92
+availableArc = pathLength × 0.88
 requiredArc  = numChars × fontSize × 0.58 + letterSpacingExtra
 ```
 
 Fit strategy:
 1. Try requested `fontSize` + `letterSpacing`
-2. Reduce `letterSpacing` down to `70`
-3. Reduce `fontSize` if needed, minimum `6`
+2. Reduce `fontSize` while preserving the requested spacing
+3. Reduce `letterSpacing` only if the minimum readable font size is still too long
+
+Guard rails:
+- minimum arc font size = `5`
+- minimum arc letter spacing = `85`
 
 This keeps whitespace near the arc endpoints while ensuring the string fits the actual rendered path.
 
@@ -113,6 +119,32 @@ This keeps whitespace near the arc endpoints while ensuring the string fits the 
 | `fitCenterTextFontSize(text, safeInnerR, maxFontSize)` | Returns max safe font size for center text using Arial Bold char width ratio (0.58) |
 
 These helpers are used in `createDefaultStamp()` and by the shared SVG renderer. Template previews and exports do not maintain a separate geometry implementation.
+
+### Template normalization and repair
+
+Seeded template states are not treated as trusted final geometry. Before preview, load, or audit, the shared normalizer (`shared/templateStateNormalization.ts`) performs:
+
+1. **Schema normalization** — legacy `textOnPath` / `centerText` element names are converted to the canonical element types and missing `heightMm` is filled in shape-safely.
+2. **Arc repair** — `text-on-path` radius is clamped against the safe frame bounds, then `fitArcText()` is run against the real semantic arc length.
+3. **Center-text repair** — center text is fitted as a **stack**, not as isolated elements. The fitter reserves a central band between any top/bottom arc text, rescales the stack, and repositions the lines vertically.
+4. **Center-text wrapping** — if a long center phrase still cannot fit at the minimum readable font size, the normalizer tries balanced 2-line / 3-line wraps before accepting overflow.
+
+This is the canonical rule for:
+- template library previews
+- source-fallback templates when `DATABASE_URL` is absent
+- template states loaded into the editor
+- geometry audit / repair scripts
+
+The rule is deterministic: malformed template data may still be repaired at the source, but the runtime renderer is guarded so future bad states do not reintroduce clipped previews.
+
+### Template categories
+
+The template drawer category strip must come from the live template source, not a hard-coded frontend list.
+
+- With a database: categories come from `template.categories`
+- Without a database: categories are derived from `server/seed300Templates.ts`
+
+This avoids stale categories such as `Legal / Notary` or `Wedding` showing up in the UI when the actual source catalog only contains `Legal` and no wedding templates.
 
 ---
 
@@ -185,12 +217,13 @@ All values are computed at runtime by `createDefaultStamp()` using the geometry 
 | Frame `strokeWidth` | `3` | — | Clean, visible border |
 | Frame `lineBreak` | `0` | — | Solid ring, no gap |
 | Arc `radius` | derived by `fitArcTextRadius(6, safeInnerR, maxR)` | `~71%` of maxR (`~21.40` SVG units) | Baseline stays inside the safe frame area |
-| Arc `fontSize` | `6` pt | `6` pt (auto-fit may reduce `letterSpacing`) | Restrained starter typography |
+| Top arc `fontSize` | `6` pt | `6` pt | Primary outer label |
+| Bottom arc `fontSize` | `4` pt | `4` pt | Deliberately more restrained than the top arc |
 | Arc `letterSpacing` | `100` (stored) | Reduced only if needed to fit the rendered arc | Never overflows arc |
 | Arc `bold` | `true` | — | Legibility |
 | Top arc center | `startAngle = 0` | `12 o'clock` | Semantic top arc | Deterministic |
 | Bottom arc center | `startAngle = 0`, `inverse = true` | `6 o'clock` | Semantic bottom arc | Deterministic |
-| Centre `fontSize` | `6` pt | `fitCenterTextFontSize("YOUR STAMP", 24.58, 7)` | Width 34.8 ≤ 40.3 available ✓ |
+| Centre `fontSize` | `7` pt | `fitCenterTextFontSize("YOUR STAMP", 24.58, 7)` | Width 40.6 ≤ 42.3 available ✓ |
 | Centre `x` / `y` | `50` / `50` | Canvas centre (125, 125) | Perfectly centred |
 | Centre `bold` | `true` | — | Legibility |
 | Colour (all elements) | `#1a3a6b` | — | Classic stamp blue |
@@ -213,9 +246,10 @@ The store uses Zustand `persist` (localStorage key `stampelo-editor`):
 The canonical stamp is produced by `createDefaultStamp("round")` in `client/src/editor/store.ts`. The function:
 
 1. Calls `getStampSafeGeometry(38)` to derive `maxR` and `safeInnerR`
-2. Calls `fitArcTextRadius(6, safeInnerR, maxR)` to get the arc radius percentage
+2. Calls `fitArcTextRadius(6, safeInnerR, maxR)` to get the shared arc radius percentage
 3. Calls `fitCenterTextFontSize("YOUR STAMP", safeInnerR, 7)` to get the centre font size
 4. Constructs the 4-element array in the order: `frame → topArc → centerText → bottomArc`
+5. Uses a smaller bottom arc font size than the top arc to keep `CREATE IN SECONDS` tightly centred around `6 o'clock`
 
 Do **not** hardcode SVG-unit values in `createDefaultStamp()`. Always derive them from the helpers so the geometry stays consistent if constants change.
 
@@ -245,7 +279,7 @@ The persisted editor state uses Zustand `persist` with schema version `3`.
 
 #### Regression tests
 
-All assertions live in `server/defaultStamp.test.ts` (17 tests). Run with `pnpm test`. Tests cover:
+Starter assertions live in `server/defaultStamp.test.ts`. Catalog normalization assertions live in `server/templateGeometry.test.ts`. Run with `pnpm test`. Coverage includes:
 - Shape and size (`round`, 38 × 38 mm)
 - Exact element count (4) and element order
 - Canonical text strings for each layer
@@ -253,7 +287,10 @@ All assertions live in `server/defaultStamp.test.ts` (17 tests). Run with `pnpm 
 - All effects off by default
 - Arc glyph top ≤ `safeInnerR` (no frame collision)
 - Centre text width ≤ available safe width (no clipping)
-- Auto-fit produces `fontSize ≥ 6` and the fitted text fits the arc
+- Starter bottom arc is no larger than the top arc fit
+- Catalog audit flags the unnormalized 318-template source set
+- Catalog normalization reduces repaired invalid templates to `0`
+- Round, oval, rectangular, and triangular template examples fit within safe bounds
 - Each `createDefaultStamp()` call returns a unique stamp ID
 
 ### Physical size label

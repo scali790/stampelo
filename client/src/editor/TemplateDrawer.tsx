@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc";
 import { useEditorStore } from "./store";
 import { Search } from "lucide-react";
-import { TEMPLATE_CATEGORIES } from "../../../shared/templateData";
-import { normalizeTemplateState, normalizeTemplateStamp } from "../../../shared/templateStateNormalization";
+import { normalizeTemplateState } from "../../../shared/templateStateNormalization";
 import { renderStampSvg, CANVAS_SIZE, CANVAS_CENTER } from "./svgUtils";
 import type { Stamp } from "./types";
 
@@ -102,12 +101,38 @@ export function TemplateDrawer({ open, onClose }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>();
   const { loadState } = useEditorStore();
+  const chipStripRef = useRef<HTMLDivElement>(null);
+  const selectedChipRef = useRef<HTMLButtonElement | null>(null);
 
   const [page, setPage] = useState(1);
   const { data: result, error, isLoading } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
+  const { data: categoryResults = [] } = trpc.template.categories.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   const templates = result?.items ?? [];
   const total = result?.total ?? 0;
   const totalPages = result?.totalPages ?? 1;
+  const categories = categoryResults
+    .filter((entry) => entry.count > 0)
+    .map((entry) => entry.category);
+
+  useEffect(() => {
+    selectedChipRef.current?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+  }, [category, open]);
+
+  useEffect(() => {
+    const strip = chipStripRef.current;
+    if (!strip) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      strip.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+
+    strip.addEventListener("wheel", onWheel, { passive: false });
+    return () => strip.removeEventListener("wheel", onWheel);
+  }, []);
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
@@ -142,23 +167,31 @@ export function TemplateDrawer({ open, onClose }: Props) {
                 className="pl-8 h-8 text-sm"
               />
             </div>
-            <ScrollArea className="w-full">
-              <div className="flex gap-1.5 pb-1">
+            <div
+              ref={chipStripRef}
+              aria-label="Template categories"
+              data-testid="template-category-strip"
+              className="w-full overflow-x-auto overscroll-x-contain"
+            >
+              <div className="flex w-max gap-1.5 pb-1 whitespace-nowrap">
                 <Button
                   size="sm" variant={!category ? "default" : "outline"}
                   className="h-6 text-xs whitespace-nowrap"
+                  ref={!category ? selectedChipRef : undefined}
                   onClick={() => selectCategory(undefined)}
                 >All</Button>
-                {TEMPLATE_CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <Button
-                    key={cat} size="sm"
+                    key={cat}
+                    size="sm"
                     variant={category === cat ? "default" : "outline"}
                     className="h-6 text-xs whitespace-nowrap"
+                    ref={category === cat ? selectedChipRef : undefined}
                     onClick={() => selectCategory(cat)}
                   >{cat}</Button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
             <div className="text-[11px] text-muted-foreground">
               {isLoading ? "Loading templates…" : error ? "Template service unavailable" : total > 0 ? `${total} template${total === 1 ? "" : "s"}` : "No templates"}
             </div>

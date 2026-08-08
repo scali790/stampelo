@@ -12,7 +12,7 @@ import {
 const ARC_ASCENDER_RATIO = 0.28;
 const ARC_EXTRA_GAP = 1.5;
 const ARIAL_BOLD_CHAR_WIDTH_RATIO = 0.58;
-const CENTER_TEXT_WIDTH_FACTOR = 0.82;
+const CENTER_TEXT_WIDTH_FACTOR = 0.86;
 
 function getStarterElements() {
   const stamp = createDefaultStamp("round");
@@ -65,8 +65,8 @@ describe("Canonical Default Starter Stamp — createDefaultStamp()", () => {
     const arc = getTextPathGeometry(topArc, stamp);
     expect(arc.role).toBe("top");
     expect(arc.centerAngleDeg).toBe(0);
-    expect(arc.startAngleDeg).toBe(280);
-    expect(arc.endAngleDeg).toBe(80);
+    expect(arc.startAngleDeg).toBe(290);
+    expect(arc.endAngleDeg).toBe(70);
     expect(arc.sweepFlag).toBe(1);
     expect(arc.largeArcFlag).toBe(0);
   });
@@ -75,8 +75,8 @@ describe("Canonical Default Starter Stamp — createDefaultStamp()", () => {
     const arc = getTextPathGeometry(bottomArc, stamp);
     expect(arc.role).toBe("bottom");
     expect(arc.centerAngleDeg).toBe(180);
-    expect(arc.startAngleDeg).toBe(260);
-    expect(arc.endAngleDeg).toBe(100);
+    expect(arc.startAngleDeg).toBe(250);
+    expect(arc.endAngleDeg).toBe(110);
     expect(arc.sweepFlag).toBe(0);
     expect(arc.largeArcFlag).toBe(0);
   });
@@ -99,8 +99,8 @@ describe("Canonical Default Starter Stamp — createDefaultStamp()", () => {
       bottomArc.text.length * fittedBottom.fontSize * 0.58 +
       ((fittedBottom.letterSpacing - 100) * 0.08) * (bottomArc.text.length - 1);
 
-    expect(requiredTop).toBeLessThanOrEqual(topGeometry.pathLength * 0.92);
-    expect(requiredBottom).toBeLessThanOrEqual(bottomGeometry.pathLength * 0.92);
+    expect(requiredTop).toBeLessThanOrEqual(topGeometry.pathLength * 0.88);
+    expect(requiredBottom).toBeLessThanOrEqual(bottomGeometry.pathLength * 0.88);
   });
 
   it("keeps both arc baselines inside the frame-safe radius", () => {
@@ -171,6 +171,6 @@ describe("Geometry helpers — safe area invariants", () => {
 
   it("fitCenterTextFontSize('YOUR STAMP', safeInnerR, 7) matches the starter center size", () => {
     const geometry = getStampSafeGeometry(38);
-    expect(fitCenterTextFontSize("YOUR STAMP", geometry.safeInnerR, 7)).toBe(6);
+    expect(fitCenterTextFontSize("YOUR STAMP", geometry.safeInnerR, 7)).toBe(7);
   });
 });

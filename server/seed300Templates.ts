@@ -8,9 +8,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { templates } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL!, ssl: { rejectUnauthorized: false } });
-const db = drizzle(pool);
+import { pathToFileURL } from "url";
+import { normalizeTemplateState } from "../shared/templateStateNormalization";
 
 // ─── Helper to build stamp state JSON ─────────────────────────────────────────
 function makeRound(text1: string, text2: string, color = "#1a3a6b") {
@@ -93,7 +92,7 @@ function makeTriangle(line1: string, line2: string, color = "#1a3a6b") {
 }
 
 // ─── Template catalogue ────────────────────────────────────────────────────────
-const TEMPLATES: Array<{
+export const RAW_TEMPLATE_RECORDS: Array<{
   slug: string; category: string; name: string; nameDE: string;
   shape: string; sortOrder: number; searchTerms: string;
   stateJson: object;
@@ -473,13 +472,22 @@ const TEMPLATES: Array<{
   { slug: "min-oval-3", category: "Custom", name: "Starter Oval", nameDE: "Start Oval", shape: "oval", sortOrder: 1315, searchTerms: "starter oval custom blank", stateJson: makeOval("YOUR TEXT", "OFFICIAL") },
 ];
 
+export const TEMPLATE_RECORDS = RAW_TEMPLATE_RECORDS.map((record) => ({
+  ...record,
+  stateJson: normalizeTemplateState(record.stateJson),
+}));
+
 // ─── Seed function ─────────────────────────────────────────────────────────────
 async function seed() {
-  console.log(`[Seed] Starting template seed — ${TEMPLATES.length} templates`);
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool);
+
+  console.log(`[Seed] Starting template seed — ${TEMPLATE_RECORDS.length} templates`);
   let inserted = 0;
   let skipped = 0;
 
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     // Idempotency: check by slug
     const existing = await db.select().from(templates).where(eq(templates.slug as any, t.slug)).limit(1);
     if (existing.length > 0) {
@@ -501,11 +509,11 @@ async function seed() {
   }
 
   console.log(`[Seed] Done — inserted: ${inserted}, skipped (already exists): ${skipped}`);
-  console.log(`[Seed] Total templates in catalogue: ${TEMPLATES.length}`);
+  console.log(`[Seed] Total templates in catalogue: ${TEMPLATE_RECORDS.length}`);
 
   // Count by category
   const cats: Record<string, number> = {};
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     cats[t.category] = (cats[t.category] || 0) + 1;
   }
   console.log("[Seed] Category breakdown:");
@@ -515,7 +523,7 @@ async function seed() {
 
   // Count by shape
   const shapes: Record<string, number> = {};
-  for (const t of TEMPLATES) {
+  for (const t of TEMPLATE_RECORDS) {
     shapes[t.shape] = (shapes[t.shape] || 0) + 1;
   }
   console.log("[Seed] Shape breakdown:");
@@ -526,4 +534,6 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed().catch((e) => { console.error(e); process.exit(1); });
+}

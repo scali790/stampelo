@@ -2,114 +2,115 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import { templates } from "../drizzle/schema";
-import { normalizeTemplateState } from "../shared/templateStateNormalization";
+import {
+  auditTemplateStampGeometry,
+  normalizeTemplateState,
+  type TemplateGeometryIssueSummary,
+} from "../shared/templateStateNormalization";
+import { RAW_TEMPLATE_RECORDS } from "./seed300Templates";
 
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+type TemplateRowLike = {
+  id: number | string;
+  name: string;
+  category: string;
+  shape: string | null;
+  stateJson: unknown;
+};
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-const db = drizzle(pool);
-
-function layoutFingerprint(stateJson: unknown) {
-  const state = normalizeTemplateState(stateJson);
-  const stamp = state.stamps[0];
-  if (!stamp) return "missing-stamp";
-
-  return JSON.stringify({
-    shape: stamp.shape,
-    widthMm: stamp.widthMm,
-    heightMm: stamp.heightMm,
-    elements: stamp.elements.map((el: any) => ({
-      type: el.type,
-      radius: el.radius,
-      strokeWidth: el.strokeWidth,
-      font: el.font,
-      fontSize: el.fontSize,
-      bold: el.bold,
-      italic: el.italic,
-      align: el.align,
-      inverse: el.inverse,
-      letterSpacing: el.letterSpacing,
-      startAngle: el.startAngle,
-      x: el.x,
-      y: el.y,
-      scale: el.scale,
-      lineBreak: el.lineBreak,
-    })),
-  });
+function hasIssues(issues: TemplateGeometryIssueSummary): boolean {
+  return Object.values(issues).some(Boolean);
 }
 
-function exactFingerprint(stateJson: unknown) {
-  return JSON.stringify(normalizeTemplateState(stateJson));
+function emptyIssueSummary(): TemplateGeometryIssueSummary {
+  return {
+    arcTextOverflow: false,
+    frameCollision: false,
+    centerTextOverflow: false,
+    missingInvalidGeometry: false,
+    unsupportedState: false,
+  };
+}
+
+async function loadRows(): Promise<{ source: "database" | "seed"; rows: TemplateRowLike[] }> {
+  if (!process.env.DATABASE_URL) {
+    return {
+      source: "seed",
+      rows: RAW_TEMPLATE_RECORDS.map((record) => ({
+        id: record.slug,
+        name: record.name,
+        category: record.category,
+        shape: record.shape,
+        stateJson: record.stateJson,
+      })),
+    };
+  }
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const db = drizzle(pool);
+  try {
+    const rows = await db.select().from(templates).where(eq(templates.isActive, true));
+    return { source: "database", rows };
+  } finally {
+    await pool.end();
+  }
 }
 
 async function main() {
-  const rows = await db.select().from(templates).where(eq(templates.isActive, true));
+  const { source, rows } = await loadRows();
   const categories = new Map<string, number>();
-  const shapes = new Map<string, number>();
-  const layouts = new Map<string, string[]>();
-  const exact = new Map<string, string[]>();
+  const invalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
 
-  let legacyTextOnPath = 0;
-  let legacyCenterText = 0;
-  let missingHeightMm = 0;
-  let missingThumbnail = 0;
-  let missingStamp = 0;
-  let noVisibleText = 0;
+  let valid = 0;
+  let invalid = 0;
+  let repairedStillInvalid = 0;
 
-  for (const row of rows) {
+  const reasonCounts = rows.reduce((acc, row) => {
     categories.set(row.category, (categories.get(row.category) ?? 0) + 1);
-    shapes.set(row.shape ?? "unknown", (shapes.get(row.shape ?? "unknown") ?? 0) + 1);
 
-    const raw = (row.stateJson ?? {}) as any;
-    const stamp = raw?.stamps?.[0];
-    if (!stamp) missingStamp++;
-    if (stamp?.heightMm == null) missingHeightMm++;
-    if (!row.thumbnailSvg) missingThumbnail++;
+    const stamp = normalizeTemplateState(row.stateJson, { repairGeometry: false }).stamps[0];
+    const repairedStamp = normalizeTemplateState(row.stateJson, { repairGeometry: true }).stamps[0];
+    const issues = stamp ? auditTemplateStampGeometry(stamp) : { ...emptyIssueSummary(), unsupportedState: true };
+    const repairedIssues = repairedStamp ? auditTemplateStampGeometry(repairedStamp) : { ...emptyIssueSummary(), unsupportedState: true };
 
-    const rawElements = Array.isArray(stamp?.elements) ? stamp.elements : [];
-    if (rawElements.some((e: any) => e?.type === "textOnPath")) legacyTextOnPath++;
-    if (rawElements.some((e: any) => e?.type === "centerText")) legacyCenterText++;
+    if (hasIssues(issues)) {
+      invalid++;
+      const shape = stamp?.shape ?? row.shape;
+      if (shape === "round" || shape === "oval" || shape === "rectangular" || shape === "triangular") {
+        invalidByShape[shape]++;
+      } else {
+        invalidByShape.other++;
+      }
+    } else {
+      valid++;
+    }
 
-    const normalized = normalizeTemplateState(row.stateJson);
-    const visibleText = normalized.stamps[0]?.elements.filter((e: any) =>
-      e.visible !== false && (e.type === "center-text" || e.type === "text-on-path") && String(e.text ?? "").trim().length > 0
-    ) ?? [];
-    if (visibleText.length === 0) noVisibleText++;
+    if (hasIssues(repairedIssues)) repairedStillInvalid++;
 
-    const layoutKey = layoutFingerprint(row.stateJson);
-    layouts.set(layoutKey, [...(layouts.get(layoutKey) ?? []), row.name]);
-
-    const exactKey = exactFingerprint(row.stateJson);
-    exact.set(exactKey, [...(exact.get(exactKey) ?? []), row.name]);
-  }
-
-  const layoutClusters = Array.from(layouts.values()).sort((a, b) => b.length - a.length);
-  const exactDuplicates = Array.from(exact.values()).filter(v => v.length > 1).sort((a, b) => b.length - a.length);
+    for (const [reason, present] of Object.entries(issues)) {
+      if (present) acc[reason as keyof TemplateGeometryIssueSummary]++;
+    }
+    return acc;
+  }, {
+    arcTextOverflow: 0,
+    frameCollision: 0,
+    centerTextOverflow: 0,
+    missingInvalidGeometry: 0,
+    unsupportedState: 0,
+  });
 
   console.log(JSON.stringify({
-    activeTemplates: rows.length,
-    schemaIssues: {
-      legacyTextOnPath,
-      legacyCenterText,
-      missingHeightMm,
-      missingThumbnail,
-      missingStamp,
-      noVisibleText,
-    },
-    categoryCount: categories.size,
-    categories: Object.fromEntries(Array.from(categories.entries()).sort((a, b) => b[1] - a[1])),
-    shapes: Object.fromEntries(Array.from(shapes.entries()).sort((a, b) => b[1] - a[1])),
-    distinctStructuralLayouts: layouts.size,
-    largestStructuralLayoutClusters: layoutClusters.slice(0, 12).map(names => ({ count: names.length, examples: names.slice(0, 8) })),
-    exactDuplicateGroups: exactDuplicates.length,
-    exactDuplicateExamples: exactDuplicates.slice(0, 10).map(names => ({ count: names.length, examples: names.slice(0, 8) })),
+    auditedSource: source,
+    totalTemplates: rows.length,
+    valid,
+    invalid,
+    invalidByShape,
+    invalidByReason: reasonCounts,
+    categories: Object.fromEntries(Array.from(categories.entries()).sort((a, b) => a[0].localeCompare(b[0]))),
+    repairedStillInvalid,
   }, null, 2));
-
-  await pool.end();
 }
 
-main().catch(async error => {
+main().catch((error) => {
   console.error(error);
-  await pool.end();
   process.exit(1);
 });
