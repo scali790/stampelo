@@ -164,16 +164,7 @@ function wrapCenterText(text: string, lines: number): string[] {
   if (lines <= 1) return [text];
 
   if (words.length === 1) {
-    const token = words[0]!;
-    if (token.length < lines * 4) return [text];
-
-    const parts: string[] = [];
-    for (let idx = 0; idx < lines; idx++) {
-      const start = Math.floor((token.length * idx) / lines);
-      const end = Math.floor((token.length * (idx + 1)) / lines);
-      parts.push(token.slice(start, end));
-    }
-    return parts.filter(Boolean);
+    return [text];
   }
 
   if (lines > words.length) return [text];

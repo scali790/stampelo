@@ -424,18 +424,17 @@ function renderTextOnPath(el: TextOnPathElement, stamp: Stamp, elIdx: number): {
 // Required arc  = numChars * fontSize * CHAR_WIDTH_RATIO + letterSpacingExtra
 //
 // Strategy:
-//   1. Try the requested fontSize with the requested letterSpacing.
-//   2. If it doesn't fit, reduce fontSize while preserving the requested spacing.
-//   3. If still doesn't fit, reduce letterSpacing down to MIN_LETTER_SPACING.
-//   4. Never go below MIN_FONT_SIZE.
+//   1. Never compress tracking below ARC_MIN_READABLE_LETTER_SPACING.
+//   2. Choose the largest font size that can fit while respecting that floor.
+//   3. At that font size, keep the widest tracking that still fits.
+//   4. If nothing fits, fall back to the readability floor at the minimum font size.
 //
 // Returns { fontSize, letterSpacing } — both may be reduced from the input values.
 
-const ARC_USABLE_FRACTION = 0.88;   // keep more whitespace near the arc endpoints
 export const ARC_VISUAL_SAFE_OCCUPANCY = 0.68;
 const ARC_CHAR_WIDTH_RATIO = 0.58;  // Arial Bold average char width / fontSize
-const MIN_FONT_SIZE_ARC = 4;        // minimum readable font size on arc
-const MIN_LETTER_SPACING = 85;      // avoid overly aggressive glyph compression
+export const MIN_FONT_SIZE_ARC = 3; // minimum readable font size on arc
+export const ARC_MIN_READABLE_LETTER_SPACING = 94;
 
 export function fitArcText(
   text: string,
@@ -447,35 +446,40 @@ export function fitArcText(
   if (numChars === 0) return { fontSize: requestedFontSize, letterSpacing: requestedLetterSpacing };
 
   const availableArc = pathLength * ARC_VISUAL_SAFE_OCCUPANCY;
-  const clampedLetterSpacing = Number.isFinite(requestedLetterSpacing) ? requestedLetterSpacing : 100;
+  const clampedLetterSpacing = Number.isFinite(requestedLetterSpacing)
+    ? Math.max(requestedLetterSpacing, ARC_MIN_READABLE_LETTER_SPACING)
+    : 100;
   const clampedFontSize = Number.isFinite(requestedFontSize) ? requestedFontSize : MIN_FONT_SIZE_ARC;
-
-  // Step 1: try requested values
-  if (getRequiredArcLength(numChars, clampedFontSize, clampedLetterSpacing) <= availableArc) {
-    return { fontSize: clampedFontSize, letterSpacing: clampedLetterSpacing };
-  }
-
-  // Step 2: prefer reducing font size before tightening spacing.
-  const spacingPx = (clampedLetterSpacing - 100) * 0.08 * Math.max(numChars - 1, 0);
-  const fontSizeAtRequestedSpacing = Math.floor(
-    Math.max((availableArc - spacingPx) / (numChars * ARC_CHAR_WIDTH_RATIO), 0)
-  );
-  if (fontSizeAtRequestedSpacing >= MIN_FONT_SIZE_ARC) {
-    return { fontSize: Math.min(clampedFontSize, fontSizeAtRequestedSpacing), letterSpacing: clampedLetterSpacing };
-  }
-
-  // Step 3: reduce letter-spacing only after the font is already at minimum.
-  if (getRequiredArcLength(numChars, MIN_FONT_SIZE_ARC, MIN_LETTER_SPACING) <= availableArc) {
-    let lo = MIN_LETTER_SPACING, hi = clampedLetterSpacing;
-    for (let i = 0; i < 8; i++) {
-      const mid = Math.floor((lo + hi) / 2);
-      if (getRequiredArcLength(numChars, MIN_FONT_SIZE_ARC, mid) <= availableArc) lo = mid + 1;
-      else hi = mid - 1; // doesn't fit, go smaller
+  const maxSpacingThatFits = (fontSize: number): number | null => {
+    if (getRequiredArcLength(numChars, fontSize, ARC_MIN_READABLE_LETTER_SPACING) > availableArc) {
+      return null;
     }
-    return { fontSize: MIN_FONT_SIZE_ARC, letterSpacing: Math.max(hi, MIN_LETTER_SPACING) };
+
+    let lo = ARC_MIN_READABLE_LETTER_SPACING;
+    let hi = clampedLetterSpacing;
+    let best = ARC_MIN_READABLE_LETTER_SPACING;
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (getRequiredArcLength(numChars, fontSize, mid) <= availableArc) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+
+    return best;
+  };
+
+  for (let fontSize = Math.floor(clampedFontSize); fontSize >= MIN_FONT_SIZE_ARC; fontSize--) {
+    const letterSpacing = maxSpacingThatFits(fontSize);
+    if (letterSpacing !== null) {
+      return { fontSize, letterSpacing };
+    }
   }
 
-  return { fontSize: MIN_FONT_SIZE_ARC, letterSpacing: MIN_LETTER_SPACING };
+  return { fontSize: MIN_FONT_SIZE_ARC, letterSpacing: ARC_MIN_READABLE_LETTER_SPACING };
 }
 
 export function getRequiredArcLength(numChars: number, fontSize: number, letterSpacing: number): number {

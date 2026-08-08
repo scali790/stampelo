@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultStamp } from "@/editor/store";
-import { fitArcText, getTextPathGeometry, renderStampSvg } from "@/editor/svgUtils";
+import {
+  ARC_MIN_READABLE_LETTER_SPACING,
+  fitArcText,
+  getTextPathGeometry,
+  renderStampSvg,
+} from "@/editor/svgUtils";
 import { RAW_TEMPLATE_RECORDS } from "./seed300Templates";
 import { auditTemplateStampGeometry, normalizeTemplateState } from "../shared/templateStateNormalization";
 
@@ -96,8 +101,20 @@ describe("Template geometry audit", () => {
   it("normalizes the full 318-template catalog into safe geometry", () => {
     const audit = summarizeTemplateAudit(true);
     expect(audit.totalTemplates).toBe(318);
-    expect(audit.invalid).toBe(0);
-    expect(audit.valid).toBe(318);
+    expect(audit.invalid).toBe(7);
+    expect(audit.valid).toBe(311);
+    expect(audit.invalidByReason).toEqual({
+      arcTextOverflow: 0,
+      frameCollision: 0,
+      centerTextOverflow: 7,
+      arcTextTooCloseToFrame: 0,
+      arcTextOccupancyTooHigh: 0,
+      centerTextOccupancyTooHigh: 7,
+      insufficientVisualClearance: 0,
+      multiRingCollisionRisk: 0,
+      missingInvalidGeometry: 0,
+      unsupportedState: 0,
+    });
   });
 });
 
@@ -135,7 +152,7 @@ describe("Template normalization by shape", () => {
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 
-  it("shrinks long single-word center text until it respects the visual cap", () => {
+  it("keeps overlong single-word center text intact and flags it for design review", () => {
     const stamp = getNormalizedStamp("per-graduation-1");
     const issues = auditTemplateStampGeometry(stamp);
     const center = stamp.elements.find(
@@ -144,9 +161,45 @@ describe("Template normalization by shape", () => {
 
     if (!center || center.type !== "center-text") throw new Error("Graduation template is missing center text");
 
-    expect(center.text).toContain("\n");
-    expect(center.fontSize).toBeLessThanOrEqual(6);
-    expect(Object.values(issues).some(Boolean)).toBe(false);
+    expect(center.text).toBe("CONGRATULATIONS");
+    expect(center.fontSize).toBe(3);
+    expect(issues.centerTextOverflow).toBe(true);
+    expect(issues.centerTextOccupancyTooHigh).toBe(true);
+  });
+
+  it("keeps single-word center labels on one line when they can fit by shrinking", () => {
+    const partnership = getNormalizedStamp("corp-round-4");
+    const official = getNormalizedStamp("corp-round-7");
+    const partnershipCenter = partnership.elements.find(
+      (element) => element.type === "center-text" && element.text.includes("PARTNERS")
+    );
+    const officialCenter = official.elements.find(
+      (element) => element.type === "center-text" && element.text.includes("AUTHORIZED")
+    );
+
+    if (!partnershipCenter || partnershipCenter.type !== "center-text") {
+      throw new Error("Partnership Seal is missing center text");
+    }
+    if (!officialCenter || officialCenter.type !== "center-text") {
+      throw new Error("Official Company Seal is missing center text");
+    }
+
+    expect(partnershipCenter.text).toBe("PARTNERS");
+    expect(officialCenter.text).toBe("AUTHORIZED");
+    expect(Object.values(auditTemplateStampGeometry(partnership)).some(Boolean)).toBe(false);
+    expect(Object.values(auditTemplateStampGeometry(official)).some(Boolean)).toBe(false);
+  });
+
+  it("wraps multi-word center phrases only at spaces", () => {
+    const stamp = getNormalizedStamp("corp-triangle-2");
+    const center = stamp.elements.find(
+      (element) => element.type === "center-text" && element.text.includes("BUSINESS")
+    );
+
+    if (!center || center.type !== "center-text") throw new Error("Triangle template is missing center text");
+
+    expect(center.text).toBe("BUSINESS\nSTAMP");
+    expect(Object.values(auditTemplateStampGeometry(stamp)).some(Boolean)).toBe(false);
   });
 
   it("wraps triangular center text when a single line cannot fit", () => {
@@ -159,6 +212,7 @@ describe("Template normalization by shape", () => {
     if (!center || center.type !== "center-text") throw new Error("Triangle template is missing center text");
 
     expect(center.text).toContain("\n");
+    expect(center.text.split("\n")).toEqual(["BUSINESS", "STAMP"]);
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 });
@@ -192,6 +246,29 @@ describe("Starter and shared renderer behavior", () => {
     expect(bottomGeometry.startAngleDeg).toBe(250);
     expect(bottomGeometry.endAngleDeg).toBe(110);
     expect(fittedBottom.fontSize).toBeLessThanOrEqual(fittedTop.fontSize);
+  });
+
+  it("reduces arc font size before crossing the readable tracking floor", () => {
+    const raw = RAW_TEMPLATE_RECORDS.find((record) => record.slug === "corp-round-7")!.stateJson;
+    const stamp = normalizeTemplateState(raw, { repairGeometry: false }).stamps[0]!;
+    const arc = stamp.elements.find((element) => element.type === "text-on-path");
+    if (!arc || arc.type !== "text-on-path") throw new Error("Official Company Seal is missing arc text");
+
+    const geometry = getTextPathGeometry(arc, stamp);
+    const fitted = fitArcText(arc.text, geometry.pathLength, arc.fontSize, arc.letterSpacing);
+
+    expect(fitted.fontSize).toBeLessThan(arc.fontSize);
+    expect(fitted.letterSpacing).toBeGreaterThanOrEqual(ARC_MIN_READABLE_LETTER_SPACING);
+  });
+
+  it("keeps long round control arcs above the readable tracking floor", () => {
+    for (const slug of ["corp-round-4", "corp-round-7"]) {
+      const stamp = getNormalizedStamp(slug);
+      const arc = stamp.elements.find((element) => element.type === "text-on-path");
+      if (!arc || arc.type !== "text-on-path") throw new Error(`Template ${slug} is missing arc text`);
+
+      expect(arc.letterSpacing).toBeGreaterThanOrEqual(ARC_MIN_READABLE_LETTER_SPACING);
+    }
   });
 
   it("renders the same normalized template SVG for preview and editor-loaded state", () => {
