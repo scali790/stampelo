@@ -45,6 +45,23 @@ function makeRoundWithSub(text1: string, center: string, sub: string, color = "#
   };
 }
 
+function makeRoundOccasion(topArc: string, center: string, bottomArc: string, color = "#1a3a6b") {
+  return {
+    stamps: [{
+      id: "s1", shape: "round", widthMm: 38, color,
+      effects: { shabby: false, gold: false, silver: false },
+      elements: [
+        { id: "e1", type: "frame", color, visible: true, radius: 90, strokeWidth: 4, lineBreakGap: 0 },
+        { id: "e2", type: "frame", color, visible: true, radius: 76, strokeWidth: 1.5, lineBreakGap: 0 },
+        { id: "e3", type: "textOnPath", color, visible: true, text: topArc, font: "Arial", fontSize: 9, bold: true, italic: false, align: "center", inverse: false, radius: 82, letterSpacing: 110, startAngle: 0 },
+        { id: "e4", type: "centerText", color, visible: true, text: center, font: "Arial", fontSize: 12, bold: true, italic: false, x: 50, y: 48 },
+        { id: "e5", type: "textOnPath", color, visible: true, text: bottomArc, font: "Arial", fontSize: 8, bold: false, italic: false, align: "center", inverse: true, radius: 82, letterSpacing: 108, startAngle: 0 },
+      ]
+    }],
+    activeStampId: "s1", locale: "en"
+  };
+}
+
 function makeRect(line1: string, line2: string, line3 = "", color = "#1a3a6b") {
   return {
     stamps: [{
@@ -412,7 +429,7 @@ export const RAW_TEMPLATE_RECORDS: Array<{
   { slug: "per-with-love-1", category: "Personal", name: "With Love", nameDE: "Mit Liebe", shape: "round", sortOrder: 1101, searchTerms: "with love personal gift", stateJson: makeRound("WITH LOVE", "❤") },
   { slug: "per-thank-you-1", category: "Personal", name: "Thank You", nameDE: "Danke", shape: "round", sortOrder: 1102, searchTerms: "thank you personal gift", stateJson: makeRound("THANK YOU", "APPRECIATED") },
   { slug: "per-save-date-1", category: "Personal", name: "Save the Date", nameDE: "Save the Date", shape: "round", sortOrder: 1103, searchTerms: "save the date wedding personal", stateJson: makeRound("SAVE THE DATE", "WEDDING") },
-  { slug: "per-wedding-1", category: "Personal", name: "Wedding", nameDE: "Hochzeit", shape: "round", sortOrder: 1104, searchTerms: "wedding personal stamp", stateJson: makeRound("WEDDING", "CELEBRATION") },
+  { slug: "per-wedding-1", category: "Personal", name: "Wedding", nameDE: "Hochzeit", shape: "round", sortOrder: 1104, searchTerms: "wedding personal stamp", stateJson: makeRoundOccasion("WITH LOVE", "WEDDING", "CELEBRATION") },
   { slug: "per-family-1", category: "Personal", name: "Family", nameDE: "Familie", shape: "round", sortOrder: 1105, searchTerms: "family personal stamp", stateJson: makeRound("FAMILY", "OFFICIAL") },
   { slug: "per-personal-library", category: "Personal", name: "Personal Library", nameDE: "Privatbibliothek", shape: "rectangular", sortOrder: 1106, searchTerms: "personal library book stamp", stateJson: makeRect("PERSONAL LIBRARY", "From the collection of:", "Name:") },
   { slug: "per-from-desk-1", category: "Personal", name: "From the Desk of", nameDE: "Vom Schreibtisch von", shape: "rectangular", sortOrder: 1107, searchTerms: "from the desk of personal", stateJson: makeRect("FROM THE DESK OF", "Name:") },
@@ -426,10 +443,10 @@ export const RAW_TEMPLATE_RECORDS: Array<{
   { slug: "per-personal-seal", category: "Personal", name: "Personal Seal", nameDE: "Persönliches Siegel", shape: "round", sortOrder: 1115, searchTerms: "personal seal stamp", stateJson: makeRound("PERSONAL SEAL", "OFFICIAL") },
   { slug: "per-custom-1", category: "Personal", name: "Custom Stamp", nameDE: "Individueller Stempel", shape: "round", sortOrder: 1116, searchTerms: "custom stamp personal", stateJson: makeRound("CUSTOM STAMP", "PERSONAL") },
   { slug: "per-wedding-rect", category: "Personal", name: "Wedding Rectangular", nameDE: "Hochzeit Rechteckig", shape: "rectangular", sortOrder: 1117, searchTerms: "wedding rectangular stamp", stateJson: makeRect("WEDDING", "Names:", "Date:") },
-  { slug: "per-engagement-1", category: "Personal", name: "Engagement", nameDE: "Verlobung", shape: "round", sortOrder: 1118, searchTerms: "engagement wedding personal", stateJson: makeRound("ENGAGEMENT", "CELEBRATION") },
+  { slug: "per-engagement-1", category: "Personal", name: "Engagement", nameDE: "Verlobung", shape: "round", sortOrder: 1118, searchTerms: "engagement wedding personal", stateJson: makeRoundOccasion("BEST WISHES", "ENGAGEMENT", "CELEBRATION") },
   { slug: "per-christening-1", category: "Personal", name: "Christening", nameDE: "Taufe", shape: "round", sortOrder: 1119, searchTerms: "christening baptism personal", stateJson: makeRound("CHRISTENING", "CELEBRATION") },
-  { slug: "per-graduation-1", category: "Personal", name: "Graduation", nameDE: "Abschluss", shape: "round", sortOrder: 1120, searchTerms: "graduation personal celebration", stateJson: makeRound("GRADUATION", "CONGRATULATIONS") },
-  { slug: "per-retirement-1", category: "Personal", name: "Retirement", nameDE: "Ruhestand", shape: "round", sortOrder: 1121, searchTerms: "retirement personal celebration", stateJson: makeRound("RETIREMENT", "CONGRATULATIONS") },
+  { slug: "per-graduation-1", category: "Personal", name: "Graduation", nameDE: "Abschluss", shape: "round", sortOrder: 1120, searchTerms: "graduation personal celebration", stateJson: makeRoundOccasion("CONGRATULATIONS", "GRADUATION", "ACHIEVEMENT") },
+  { slug: "per-retirement-1", category: "Personal", name: "Retirement", nameDE: "Ruhestand", shape: "round", sortOrder: 1121, searchTerms: "retirement personal celebration", stateJson: makeRoundOccasion("CONGRATULATIONS", "RETIREMENT", "BEST WISHES") },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DATE / SIGNATURE / UTILITY (16 templates)

@@ -101,15 +101,15 @@ describe("Template geometry audit", () => {
   it("normalizes the full 318-template catalog into safe geometry", () => {
     const audit = summarizeTemplateAudit(true);
     expect(audit.totalTemplates).toBe(318);
-    expect(audit.invalid).toBe(7);
-    expect(audit.valid).toBe(311);
+    expect(audit.invalid).toBe(3);
+    expect(audit.valid).toBe(315);
     expect(audit.invalidByReason).toEqual({
       arcTextOverflow: 0,
       frameCollision: 0,
-      centerTextOverflow: 7,
+      centerTextOverflow: 3,
       arcTextTooCloseToFrame: 0,
       arcTextOccupancyTooHigh: 0,
-      centerTextOccupancyTooHigh: 7,
+      centerTextOccupancyTooHigh: 3,
       insufficientVisualClearance: 0,
       multiRingCollisionRisk: 0,
       missingInvalidGeometry: 0,
@@ -152,16 +152,16 @@ describe("Template normalization by shape", () => {
     expect(Object.values(issues).some(Boolean)).toBe(false);
   });
 
-  it("keeps overlong single-word center text intact and flags it for design review", () => {
-    const stamp = getNormalizedStamp("per-graduation-1");
+  it("keeps accepted single-word exception labels intact and flags them for design review", () => {
+    const stamp = getNormalizedStamp("per-thank-you-1");
     const issues = auditTemplateStampGeometry(stamp);
     const center = stamp.elements.find(
-      (element) => element.type === "center-text" && element.text.includes("CONGR")
+      (element) => element.type === "center-text" && element.text.includes("APPRECIATED")
     );
 
-    if (!center || center.type !== "center-text") throw new Error("Graduation template is missing center text");
+    if (!center || center.type !== "center-text") throw new Error("Thank You template is missing center text");
 
-    expect(center.text).toBe("CONGRATULATIONS");
+    expect(center.text).toBe("APPRECIATED");
     expect(center.fontSize).toBe(3);
     expect(issues.centerTextOverflow).toBe(true);
     expect(issues.centerTextOccupancyTooHigh).toBe(true);
@@ -214,6 +214,31 @@ describe("Template normalization by shape", () => {
     expect(center.text).toContain("\n");
     expect(center.text.split("\n")).toEqual(["BUSINESS", "STAMP"]);
     expect(Object.values(issues).some(Boolean)).toBe(false);
+  });
+
+  it("uses template-specific redesigned occasion layouts for the four approved personal templates", () => {
+    const expectations = [
+      { slug: "per-wedding-1", center: "WEDDING", top: "WITH LOVE", bottom: "CELEBRATION" },
+      { slug: "per-engagement-1", center: "ENGAGEMENT", top: "BEST WISHES", bottom: "CELEBRATION" },
+      { slug: "per-graduation-1", center: "GRADUATION", top: "CONGRATULATIONS", bottom: "ACHIEVEMENT" },
+      { slug: "per-retirement-1", center: "RETIREMENT", top: "CONGRATULATIONS", bottom: "BEST WISHES" },
+    ];
+
+    for (const expected of expectations) {
+      const stamp = getNormalizedStamp(expected.slug);
+      const issues = auditTemplateStampGeometry(stamp);
+      const arcs = stamp.elements.filter((element) => element.type === "text-on-path");
+      const center = stamp.elements.find((element) => element.type === "center-text");
+
+      if (!center || center.type !== "center-text") {
+        throw new Error(`Template ${expected.slug} is missing center text`);
+      }
+
+      expect(center.text).toBe(expected.center);
+      expect(arcs.some((element) => element.type === "text-on-path" && element.text === expected.top)).toBe(true);
+      expect(arcs.some((element) => element.type === "text-on-path" && element.text === expected.bottom)).toBe(true);
+      expect(Object.values(issues).some(Boolean)).toBe(false);
+    }
   });
 });
 

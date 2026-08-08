@@ -9,6 +9,12 @@ import {
 } from "../shared/templateStateNormalization";
 import { RAW_TEMPLATE_RECORDS } from "./seed300Templates";
 
+const ACCEPTED_DESIGN_REVIEW_EXCEPTION_SLUGS = new Set([
+  "leg-internal-legal",
+  "leg-privileged-1",
+  "per-thank-you-1",
+]);
+
 type TemplateRowLike = {
   id: number | string;
   name: string;
@@ -65,12 +71,16 @@ async function main() {
   const categories = new Map<string, number>();
   const invalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
   const repairedInvalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
+  const repairedUnexpectedInvalidByShape = { round: 0, oval: 0, rectangular: 0, triangular: 0, other: 0 };
+  const acceptedDesignReviewExceptions: Array<{ id: number | string; name: string; category: string; shape: string | null }> = [];
 
   let valid = 0;
   let invalid = 0;
   let repairedStillInvalid = 0;
+  let repairedAcceptedExceptionCount = 0;
+  let repairedUnexpectedInvalidCount = 0;
 
-  const { rawReasonCounts, repairedReasonCounts } = rows.reduce((acc, row) => {
+  const { rawReasonCounts, repairedReasonCounts, repairedUnexpectedReasonCounts } = rows.reduce((acc, row) => {
     categories.set(row.category, (categories.get(row.category) ?? 0) + 1);
 
     const stamp = normalizeTemplateState(row.stateJson, { repairGeometry: false }).stamps[0];
@@ -93,6 +103,8 @@ async function main() {
     if (hasIssues(repairedIssues)) {
       repairedStillInvalid++;
       const repairedShape = repairedStamp?.shape ?? row.shape;
+      const isAcceptedException =
+        typeof row.id === "string" && ACCEPTED_DESIGN_REVIEW_EXCEPTION_SLUGS.has(row.id);
       if (
         repairedShape === "round" ||
         repairedShape === "oval" ||
@@ -103,13 +115,42 @@ async function main() {
       } else {
         repairedInvalidByShape.other++;
       }
+
+      if (isAcceptedException) {
+        repairedAcceptedExceptionCount++;
+        acceptedDesignReviewExceptions.push({
+          id: row.id,
+          name: row.name,
+          category: row.category,
+          shape: row.shape,
+        });
+      } else {
+        repairedUnexpectedInvalidCount++;
+        if (
+          repairedShape === "round" ||
+          repairedShape === "oval" ||
+          repairedShape === "rectangular" ||
+          repairedShape === "triangular"
+        ) {
+          repairedUnexpectedInvalidByShape[repairedShape]++;
+        } else {
+          repairedUnexpectedInvalidByShape.other++;
+        }
+      }
     }
 
     for (const [reason, present] of Object.entries(issues)) {
       if (present) acc.rawReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
     }
     for (const [reason, present] of Object.entries(repairedIssues)) {
-      if (present) acc.repairedReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
+      if (present) {
+        acc.repairedReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
+        const isAcceptedException =
+          typeof row.id === "string" && ACCEPTED_DESIGN_REVIEW_EXCEPTION_SLUGS.has(row.id);
+        if (!isAcceptedException) {
+          acc.repairedUnexpectedReasonCounts[reason as keyof TemplateGeometryIssueSummary]++;
+        }
+      }
     }
     return acc;
   }, {
@@ -137,6 +178,18 @@ async function main() {
       missingInvalidGeometry: 0,
       unsupportedState: 0,
     },
+    repairedUnexpectedReasonCounts: {
+      arcTextOverflow: 0,
+      frameCollision: 0,
+      centerTextOverflow: 0,
+      arcTextTooCloseToFrame: 0,
+      arcTextOccupancyTooHigh: 0,
+      centerTextOccupancyTooHigh: 0,
+      insufficientVisualClearance: 0,
+      multiRingCollisionRisk: 0,
+      missingInvalidGeometry: 0,
+      unsupportedState: 0,
+    },
   });
 
   console.log(JSON.stringify({
@@ -150,6 +203,11 @@ async function main() {
     repairedStillInvalid,
     repairedInvalidByShape,
     repairedInvalidByReason: repairedReasonCounts,
+    repairedAcceptedExceptionCount,
+    acceptedDesignReviewExceptions,
+    repairedUnexpectedInvalidCount,
+    repairedUnexpectedInvalidByShape,
+    repairedUnexpectedInvalidByReason: repairedUnexpectedReasonCounts,
   }, null, 2));
 }
 
