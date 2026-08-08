@@ -6,8 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc";
 import { useEditorStore } from "./store";
 import { Search } from "lucide-react";
-import { TEMPLATE_CATEGORIES } from "../../../shared/templateData";
-import { normalizeTemplateState, normalizeTemplateStamp } from "../../../shared/templateStateNormalization";
+import { normalizeTemplateState } from "../../../shared/templateStateNormalization";
 import { renderStampSvg, CANVAS_SIZE, CANVAS_CENTER } from "./svgUtils";
 import type { Stamp } from "./types";
 
@@ -105,9 +104,11 @@ export function TemplateDrawer({ open, onClose }: Props) {
 
   const [page, setPage] = useState(1);
   const { data: result, error, isLoading } = trpc.template.list.useQuery({ category, search, page, pageSize: 24 });
+  const { data: categoryResults, error: categoryError } = trpc.template.categories.useQuery();
   const templates = result?.items ?? [];
   const total = result?.total ?? 0;
   const totalPages = result?.totalPages ?? 1;
+  const categories = categoryResults ?? [];
 
   const handleLoad = (template: typeof templates[number]) => {
     if (template.stateJson) {
@@ -149,18 +150,29 @@ export function TemplateDrawer({ open, onClose }: Props) {
                   className="h-6 text-xs whitespace-nowrap"
                   onClick={() => selectCategory(undefined)}
                 >All</Button>
-                {TEMPLATE_CATEGORIES.map((cat) => (
+                {categories.map(({ category: cat, count }) => (
                   <Button
-                    key={cat} size="sm"
+                    key={cat}
+                    size="sm"
                     variant={category === cat ? "default" : "outline"}
                     className="h-6 text-xs whitespace-nowrap"
                     onClick={() => selectCategory(cat)}
-                  >{cat}</Button>
+                    title={`${count} template${count === 1 ? "" : "s"}`}
+                  >
+                    {cat}
+                  </Button>
                 ))}
               </div>
             </ScrollArea>
             <div className="text-[11px] text-muted-foreground">
-              {isLoading ? "Loading templates…" : error ? "Template service unavailable" : total > 0 ? `${total} template${total === 1 ? "" : "s"}` : "No templates"}
+              {isLoading
+                ? "Loading templates…"
+                : error
+                  ? "Template service unavailable"
+                  : total > 0
+                    ? `${total} template${total === 1 ? "" : "s"}`
+                    : "No templates"}
+              {categoryError ? " · Categories unavailable" : ""}
             </div>
           </div>
 

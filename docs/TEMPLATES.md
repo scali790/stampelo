@@ -23,6 +23,8 @@ Verified directly against `stampelo-db`:
 
 These findings explain the previous Template Library behaviour: frames rendered because `frame` remained a valid element type, while legacy text elements were ignored by the current renderer; rectangular/oval previews could also become invalid because their height was missing.
 
+The application now normalizes these legacy states at read time. The production rows may therefore remain in the legacy representation until a deliberate data-cleanup migration is approved; that cleanup is not required for the library to render correctly.
+
 ## Canonical editor-state schema
 
 Template state must use the same schema as `client/src/editor/types.ts`:
@@ -52,13 +54,15 @@ Each template is stored in the `templates` PostgreSQL table with:
 | `slug` | URL-friendly identifier |
 | `searchTerms` | Additional search keywords |
 
-## Current database categories
+## Categories: canonical source of truth
 
-The live database currently contains 14 categories:
+The live database currently contains 14 active categories:
 
 Business, Approval, Finance, Document, Logistics, Legal, Medical, Personal, Construction, Custom, Education, Real Estate, Retail, Utility.
 
-The frontend's historical hard-coded category list does not fully match these database values. Category taxonomy must be normalized separately; the database must remain the factual source during that migration.
+The Template Library must obtain its filter categories from the `template.categories` API, which is derived from active database rows. It must **not** use the historical hard-coded `TEMPLATE_CATEGORIES` list for editor filtering. This prevents category drift such as `Corporate` vs `Business`, `Legal / Notary` vs `Legal`, and `Finance / Banking` vs `Finance`.
+
+A future taxonomy redesign may rename or group categories, but that must be implemented as an explicit mapping/migration. Until then, the live active database categories are the factual filtering source.
 
 ## Preview Generation
 
@@ -68,11 +72,28 @@ The Template Library must distinguish API/database failure from a genuine zero-r
 
 ## Audit and repair commands
 
-Run a read-only production audit:
+Run the read-only production audit:
 
 ```bash
 DATABASE_URL="$DATABASE_URL" pnpm template:audit
 ```
+
+Include the per-template A/B/C review queue:
+
+```bash
+DATABASE_URL="$DATABASE_URL" pnpm template:audit -- --details
+```
+
+The audit reports:
+
+- schema compatibility issues;
+- category and shape counts;
+- structural-layout diversity and largest repeated layout families;
+- exact duplicate groups;
+- same-shape/same-text duplicate signals;
+- provisional A/B/C review counts and reasons.
+
+The automated A/B/C result is intentionally **provisional**. It is a prioritised review queue, not a substitute for rendered visual inspection.
 
 Preview the canonical state repair without changing data:
 
@@ -90,11 +111,13 @@ The repair changes only legacy state-schema fields and missing dimensions; it do
 
 ## Quality classification
 
-The next catalogue phase classifies every template as:
+Every active template must ultimately receive a human-confirmed classification:
 
 - **A — usable:** complete, readable and meaningfully distinct.
-- **B — repairable:** useful concept but geometry/content needs redesign.
+- **B — repairable:** useful concept but geometry/content/distinctness needs redesign.
 - **C — duplicate/junk:** empty, misleading, effectively identical or not useful as a separate template.
+
+The automated audit uses conservative candidate rules to surface the highest-risk rows first. Final classification requires rendered visual comparison, especially within large structural clusters.
 
 The active marketing count must eventually reflect usable templates, not raw rows.
 
