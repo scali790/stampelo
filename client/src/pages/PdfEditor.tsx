@@ -143,6 +143,13 @@ export default function PdfEditor() {
       stampX: placement.x,
       stampY: placement.y,
     });
+    if (mode === "rotate" && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const stampCx = rect.left + (placement.x / 100) * rect.width;
+      const stampCy = rect.top + (placement.y / 100) * rect.height;
+      const initialAngle = Math.atan2(e.clientY - stampCy, e.clientX - stampCx) * (180 / Math.PI);
+      setRotateStartAngle(initialAngle);
+    }
   }, [placement]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -163,11 +170,15 @@ export default function PdfEditor() {
     }
 
     if (dragMode === "rotate") {
-      // Compute angle from stamp center to current mouse position
+      // Compute angle delta from drag start to avoid feedback loop.
+      // The stamp div is rotated, so we must NOT use the handle's screen position.
+      // Instead: currentAngle - startAngle + initialRotation.
       const stampCx = rect.left + (dragStart.stampX / 100) * rect.width;
       const stampCy = rect.top + (dragStart.stampY / 100) * rect.height;
-      const angle = Math.atan2(e.clientY - stampCy, e.clientX - stampCx) * (180 / Math.PI) + 90;
-      setPlacement((p) => ({ ...p, rotation: ((angle % 360) + 360) % 360 }));
+      const currentAngle = Math.atan2(e.clientY - stampCy, e.clientX - stampCx) * (180 / Math.PI);
+      const deltaAngle = currentAngle - rotateStartAngle;
+      const newRotation = ((dragStart.rotation + deltaAngle) % 360 + 360) % 360;
+      setPlacement((p) => ({ ...p, rotation: newRotation }));
       return;
     }
 
@@ -470,3 +481,5 @@ export default function PdfEditor() {
     </div>
   );
 }
+  // For rotation: store the angle from stamp center to the mouse at drag start
+  const [rotateStartAngle, setRotateStartAngle] = useState(0);
