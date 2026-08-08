@@ -1,5 +1,6 @@
 import { renderStampSvg } from "../client/src/editor/svgUtils";
 import type { Stamp } from "../client/src/editor/types";
+import sharp from "sharp";
 
 // ─── SVG Export ───────────────────────────────────────────────────────────────
 export function generateSvg(stamp: Stamp): string {
@@ -8,7 +9,6 @@ export function generateSvg(stamp: Stamp): string {
 
 // ─── PNG Export via Sharp ─────────────────────────────────────────────────────
 export async function generatePng(stamp: Stamp, dpi = 600): Promise<Buffer> {
-  const sharp = (await import("sharp")).default;
   const svgString = generateSvg(stamp);
   // At 600 DPI, 38mm = 38 * 600/25.4 ≈ 898px
   const sizePx = Math.round((stamp.widthMm * dpi) / 25.4);
@@ -82,4 +82,3 @@ export async function generateDocx(stamp: Stamp): Promise<Buffer> {
   });
   return await Packer.toBuffer(doc);
 }
-
