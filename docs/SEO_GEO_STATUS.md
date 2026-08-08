@@ -2,16 +2,17 @@
 
 Canonical strategy: `docs/SEO_GEO.md`
 Canonical execution roadmap: `docs/SEO_GEO_IMPLEMENTATION.md`
+Launch benchmark: `docs/SEO_GEO_BENCHMARK_2026-08-08.md`
 Status date: 2026-08-08
 
-Legend: ✅ implemented/verified in code or production-preview · 🟡 operational/external dependency · ⏳ pending final production benchmark
+Legend: ✅ implemented/verified · 🟡 external account dependency
 
 | ID | Work item | Status | Evidence / note |
 |---|---|---|---|
 | SEO-00 | Canonical roadmap and live-audit state | ✅ | `SEO_GEO_IMPLEMENTATION.md` added; former 525 outage recorded as resolved. |
-| SEO-01 | Crawlable public rendering architecture | ✅ | Build-time route HTML generated for public SEO pages. |
+| SEO-01 | Crawlable public rendering architecture | ✅ | Build-time route HTML generated for public SEO pages and production-smoke-tested. |
 | SEO-02 | Route-aware metadata | ✅ | Unique title, description, canonical and OG metadata per generated route. |
-| SEO-03 | Real HTTP 404 | ✅ | Vercel output routes unknown URLs to `404.html` with status 404. |
+| SEO-03 | Real HTTP 404 | ✅ | Production unknown URL returns HTTP 404 and noindex. |
 | SEO-04 | Canonical / robots / sitemap hardening | ✅ | Automated build verification covers canonical and private-route exclusions. |
 | SEO-05 | Homepage canonical entity | ✅ | Visible homepage and prerendered HTML use canonical entity facts. |
 | SEO-06 | Homepage GEO answer blocks | ✅ | Visible fact blocks added. |
@@ -27,22 +28,32 @@ Legend: ✅ implemented/verified in code or production-preview · 🟡 operation
 | SEO-16 | Digital stamp guide | ✅ | `/guides/what-is-a-digital-stamp`. |
 | SEO-17 | PDF stamping guide | ✅ | `/guides/how-to-add-a-stamp-to-a-pdf`. |
 | SEO-18 | GSC + Bing Webmaster verification | 🟡 | No Search Console/Bing connector or installable plugin is available in this workspace. Requires account-level verification outside repo tooling. |
-| SEO-19 | Baseline query benchmark | ✅ | 2026-08-08 live web baseline: Stampelo not yet surfaced for representative non-brand queries; competitors recorded in final benchmark note. |
+| SEO-19 | Baseline query benchmark | ✅ | 2026-08-08 pre/post-launch baseline recorded. |
 | SEO-20 | Notary category | ✅ | `/templates/notary-stamps`. |
 | SEO-21 | Medical category | ✅ | `/templates/medical-stamps`. |
 | SEO-22 | File-format guide | ✅ | `/guides/png-vs-svg-vs-pdf-stamp` covers PNG/SVG/EPS/PDF/DOCX. |
 | SEO-23 | Company-stamp guide | ✅ | `/guides/company-stamp-requirements`. |
 | SEO-24 | FAQ | ✅ | Dedicated FAQ page + FAQPage schema. |
 | SEO-25 | Internal linking graph | ✅ | Homepage, templates, categories, guides and tools interlink. |
-| SEO-26 | OG/Twitter preview asset | ✅ | `client/public/og-stampelo.svg` and base social metadata added. |
-| SEO-27 | Analytics placeholder cleanup | ✅ | Unresolved `%VITE_ANALYTICS_*%` production placeholders removed from base HTML. |
+| SEO-26 | OG/Twitter preview asset | ✅ | `client/public/og-stampelo.svg` and social metadata added. |
+| SEO-27 | Analytics placeholder cleanup | ✅ | Unresolved `%VITE_ANALYTICS_*%` production placeholders removed. |
 | SEO-28 | HTML language consistency | ✅ | Default public SEO HTML is English; client locale updates `document.documentElement.lang`. |
 | SEO-29 | Additional template categories | ✅ | Status/workflow category added after demand evidence from competitive SERPs. |
-| SEO-30 | Qualified individual template pages | ✅ | Approved, Received, Paid and Confidential pages only; no mass 300-page generation. |
+| SEO-30 | Qualified individual template pages | ✅ | Approved, Received, Paid and Confidential only; no mass 300-page generation. Production regression check enforces route-specific bodies. |
 | SEO-31 | Genuine third-party entity/review layer | 🟡 | No Trustpilot/directory connector exists. No review or `sameAs` claim is fabricated. Requires owned external-account actions. |
 | SEO-32 | Further pillar/guide expansion | ✅ | Digital-vs-rubber, shape comparison and transparent-PNG guides added. |
-| SEO-33 | International IA decision | ✅ | Decision: keep public SEO architecture English-only for now; do not publish `/de/` or hreflang until localized search demand/content is validated. Client UI locale remains separate from SEO IA. |
-| SEO-34 | AI/search answer benchmark repeat | ⏳ | Run immediately after final production merge/deploy and record dated result. |
+| SEO-33 | International IA decision | ✅ | Keep public SEO architecture English-only for now; do not publish `/de/` or hreflang until localized search demand/content is validated. |
+| SEO-34 | AI/search answer benchmark repeat | ✅ | Immediate post-deploy benchmark completed; current search index still returns zero Stampelo results. See dated benchmark document. |
+
+## Production completion checkpoint
+
+Production deployment after the final prerender regression fix is verified READY. Smoke tests confirm:
+
+- homepage: HTTP 200, canonical entity text and JSON-LD in initial HTML;
+- qualified template page: HTTP 200 with its own route-specific body and canonical;
+- unknown URL: HTTP 404 + noindex;
+- `llms.txt`: HTTP 200 with canonical entity summary;
+- build regression checks reject duplicate homepage bodies on individual template/expansion guide routes.
 
 ## External account boundary
 
